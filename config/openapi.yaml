@@ -1,0 +1,165 @@
+openapi: "3.0.3"
+info:
+  title: Mock Enterprise API
+  version: "1.0.0"
+  description: >
+    Configurable mock of an enterprise system.
+    The first response code defined under each operation is the default response.
+    Use x-mock.responses[status].randomize to make specific fields generate
+    random values matching a regex pattern on every request.
+
+paths:
+  /api/orders:
+    post:
+      operationId: createOrder
+      summary: Submit a new order
+      x-mock:
+        store_on_success: true
+        delay:
+          min_ms: 30
+          max_ms: 120
+        responses:
+          "200":
+            randomize:
+              orderId: "[A-Z]{2}[0-9]{6}"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customerId: { type: string }
+                items: { type: array }
+      responses:
+        "200":
+          description: Order accepted
+          content:
+            application/json:
+              example:
+                orderId: "{{uuid}}"
+                status: "accepted"
+                timestamp: "{{timestamp}}"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              example:
+                error: "Invalid order payload"
+                code: "INVALID_REQUEST"
+        "503":
+          description: Upstream service unavailable
+          content:
+            application/json:
+              example:
+                error: "Upstream system unavailable"
+                code: "SERVICE_UNAVAILABLE"
+                retryAfter: 30
+
+  /api/orders/{orderId}:
+    get:
+      operationId: getOrder
+      summary: Retrieve an order by ID
+      x-mock:
+        store_on_success: false
+        delay:
+          min_ms: 10
+          max_ms: 60
+      responses:
+        "200":
+          description: Order found
+          content:
+            application/json:
+              example:
+                orderId: "{{uuid}}"
+                status: "processing"
+                createdAt: "{{timestamp}}"
+                total: 199.99
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              example:
+                error: "Order not found"
+                code: "NOT_FOUND"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              example:
+                error: "Internal server error"
+                code: "INTERNAL_ERROR"
+
+  /api/customers:
+    post:
+      operationId: createCustomer
+      summary: Register a new customer
+      x-mock:
+        store_on_success: true
+        delay:
+          min_ms: 20
+          max_ms: 80
+        responses:
+          "201":
+            randomize:
+              customerId: "CUST-[0-9]{8}"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                email: { type: string }
+      responses:
+        "201":
+          description: Customer created
+          content:
+            application/json:
+              example:
+                customerId: "CUST-{{random_int}}"
+                name: "New Customer"
+                status: "active"
+                createdAt: "{{timestamp}}"
+        "409":
+          description: Customer already exists
+          content:
+            application/json:
+              example:
+                error: "Customer with this email already exists"
+                code: "DUPLICATE_EMAIL"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              example:
+                error: "Validation failed"
+                code: "VALIDATION_ERROR"
+                fields:
+                  - field: "email"
+                    message: "Invalid email format"
+
+  /api/health:
+    get:
+      operationId: healthCheck
+      summary: System health check
+      x-mock:
+        store_on_success: false
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              example:
+                status: "ok"
+                timestamp: "{{timestamp}}"
+                version: "1.0.0"
+        "503":
+          description: Degraded
+          content:
+            application/json:
+              example:
+                status: "degraded"
+                timestamp: "{{timestamp}}"
+                reason: "Database connection slow"

@@ -1,0 +1,97 @@
+<% currentPage = 'jobs'; %>
+
+<h1>Batch Jobs</h1>
+
+<div class="grid-2">
+  <!-- Scripts -->
+  <div>
+    <h2>Available Scripts</h2>
+    <% if (scripts.length === 0) { %>
+    <div class="card text-sm" style="color:#888">
+      No scripts found. Add <code>.js</code> files to the <code>scripts/</code> directory.
+    </div>
+    <% } %>
+    <% scripts.forEach(function(s) { %>
+    <div class="card">
+      <div class="flex" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <strong><%= s.name %></strong>
+          <div class="text-sm" style="margin-top:2px"><code><%= s.file %></code></div>
+          <% if (s.cron) { %>
+          <div class="text-sm" style="margin-top:4px">Cron: <code><%= s.cron %></code></div>
+          <% } else { %>
+          <div class="text-sm" style="margin-top:4px;color:#888">No cron — manual only</div>
+          <% } %>
+          <% if (s.description) { %><div class="text-sm" style="margin-top:4px"><%= s.description %></div><% } %>
+          <% if (s.error) { %><div class="text-sm" style="margin-top:4px;color:#dc2626">Load error: <%= s.error %></div><% } %>
+        </div>
+        <% if (!s.error) { %>
+        <button class="btn btn-primary btn-sm" onclick="triggerJob('<%= s.file %>', this)">▶ Run now</button>
+        <% } %>
+      </div>
+    </div>
+    <% }); %>
+  </div>
+
+  <!-- Run history -->
+  <div>
+    <h2>Recent Runs</h2>
+    <% if (runs.length === 0) { %>
+    <div class="card text-sm" style="color:#888">No runs yet.</div>
+    <% } %>
+    <% runs.forEach(function(r) { %>
+    <div class="card" style="padding:12px">
+      <div class="flex" style="justify-content:space-between;flex-wrap:wrap;gap:6px">
+        <div>
+          <strong><%= r.script_name %></strong>
+          <span class="badge badge-default" style="margin-left:6px"><%= r.triggered_by %></span>
+        </div>
+        <span class="badge <%= r.status === 'success' ? 'badge-success' : r.status === 'error' ? 'badge-error' : 'badge-running' %>">
+          <%= r.status %>
+        </span>
+      </div>
+      <div class="text-sm" style="margin-top:4px"><%= r.started_at %></div>
+      <% if (r.output_files) { %>
+      <% const files = JSON.parse(r.output_files || '[]'); %>
+      <% if (files.length > 0) { %>
+      <div class="text-sm" style="margin-top:6px">
+        Files: <% files.forEach(function(f) { %><a href="/admin/files/download/<%= encodeURIComponent(f) %>"><code><%= f %></code></a> <% }); %>
+      </div>
+      <% } %>
+      <% } %>
+      <% if (r.error) { %><div class="text-sm" style="margin-top:4px;color:#dc2626"><%= r.error %></div><% } %>
+      <% if (r.logs) { %>
+      <% const logs = JSON.parse(r.logs || '[]'); %>
+      <% if (logs.length > 0) { %>
+      <details style="margin-top:6px">
+        <summary class="text-sm">Logs (<%= logs.length %>)</summary>
+        <pre style="margin-top:6px"><%= logs.join('\n') %></pre>
+      </details>
+      <% } %>
+      <% } %>
+    </div>
+    <% }); %>
+  </div>
+</div>
+
+<script>
+  async function triggerJob(file, btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Running…';
+    try {
+      const result = await apiPost('/admin/jobs/trigger', { file });
+      if (result.ok) {
+        btn.textContent = '✓ Done';
+        setTimeout(() => location.reload(), 800);
+      } else {
+        btn.textContent = '✗ Failed';
+        alert('Job failed: ' + (result.error || 'Unknown error'));
+        setTimeout(() => { btn.disabled = false; btn.textContent = '▶ Run now'; }, 2000);
+      }
+    } catch (err) {
+      btn.textContent = '✗ Error';
+      alert('Request error: ' + err.message);
+      setTimeout(() => { btn.disabled = false; btn.textContent = '▶ Run now'; }, 2000);
+    }
+  }
+</script>

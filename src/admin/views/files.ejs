@@ -1,0 +1,33 @@
+<% currentPage = 'files'; %>
+
+<h1>Output Files</h1>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <table>
+    <thead>
+      <tr>
+        <th>Filename</th>
+        <th>Size</th>
+        <th>Last modified</th>
+        <th>Download</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (files.length === 0) { %>
+      <tr><td colspan="4" style="text-align:center;color:#888;padding:24px">
+        No output files yet. Trigger a batch job to generate files.
+      </td></tr>
+      <% } %>
+      <% files.forEach(function(f) { %>
+      <tr>
+        <td><code><%= f.name %></code></td>
+        <td class="text-sm"><%= (f.size / 1024).toFixed(1) %> KB</td>
+        <td class="text-sm"><%= f.mtime %></td>
+        <td>
+          <a href="/admin/files/download/<%= encodeURIComponent(f.name) %>" class="btn btn-secondary btn-sm">Download</a>
+        </td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>

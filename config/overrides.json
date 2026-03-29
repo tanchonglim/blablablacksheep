@@ -1,0 +1,18 @@
+{
+  "POST /api/orders": {
+    "mode": "weighted",
+    "pinned_status": "400"
+  },
+  "POST /api/customers": {
+    "mode": "weighted",
+    "randomize_overrides": {
+      "201": {
+        "customerId": "CUST-[0-9]{8}"
+      }
+    }
+  },
+  "null": {
+    "mode": "pinned",
+    "pinned_status": "400"
+  }
+}
