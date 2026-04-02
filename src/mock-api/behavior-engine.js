@@ -49,9 +49,16 @@ function buildEffectiveConfig(specEndpoint, overrides) {
 
   // Build scenarios list from OpenAPI responses (order preserved = spec order)
   const scenarios = Object.entries(specEndpoint.responses || {}).map(([status, respDef]) => {
-    // Resolve default body from OpenAPI example
+    // Resolve default body from OpenAPI example.
+    // Supports both formats:
+    //   example: { ... }                          (singular — OpenAPI 3.0.x)
+    //   examples: { default: { value: { ... } } } (named examples — OpenAPI 3.0.x / 3.1.x)
     const contentEntry = respDef.content ? Object.values(respDef.content)[0] : null;
-    const defaultBody = contentEntry?.example ?? null;
+    let defaultBody = contentEntry?.example ?? null;
+    if (defaultBody === null && contentEntry?.examples) {
+      const firstExample = Object.values(contentEntry.examples)[0];
+      defaultBody = firstExample?.value ?? null;
+    }
 
     // Override body from admin UI
     const bodyOverride = override.body_overrides?.[status];
