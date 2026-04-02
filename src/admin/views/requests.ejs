@@ -1,26 +1,29 @@
 <% currentPage = 'requests'; %>
 
-<h1>Stored Requests</h1>
+<h1 class="text-xl font-semibold text-white mb-5">Stored Requests</h1>
 
-<div class="card" style="padding:12px">
-  <form method="get" action="/admin/requests" class="flex" style="flex-wrap:wrap;gap:8px;align-items:flex-end">
+<!-- Filter form -->
+<div class="card">
+  <form method="get" action="/admin/requests" class="flex flex-wrap gap-3 items-end">
     <div>
-      <label class="text-sm">Endpoint</label>
-      <select name="endpoint" style="width:220px">
-        <option value="">All endpoints</option>
-        <% endpoints.forEach(function(e) { %>
-        <option value="<%= e %>" <%= endpoint === e ? 'selected' : '' %>><%= e %></option>
-        <% }); %>
-      </select>
+      <label class="block text-xs font-medium text-slate-400 mb-1.5">Endpoint</label>
+      <div class="select-wrap" style="width:240px">
+        <select name="endpoint">
+          <option value="">All endpoints</option>
+          <% endpoints.forEach(function(e) { %>
+          <option value="<%= e %>" <%= endpoint === e ? 'selected' : '' %>><%= e %></option>
+          <% }); %>
+        </select>
+      </div>
     </div>
     <div>
-      <label class="text-sm">Status code</label>
-      <input name="status" value="<%= status || '' %>" placeholder="e.g. 200" style="width:100px">
+      <label class="block text-xs font-medium text-slate-400 mb-1.5">Status code</label>
+      <input name="status" value="<%= status || '' %>" placeholder="e.g. 200" class="input" style="width:100px">
     </div>
-    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-    <a href="/admin/requests" class="btn btn-secondary btn-sm">Clear</a>
-    <div style="margin-left:auto">
-      <button type="button" class="btn btn-danger btn-sm"
+    <button type="submit" class="btn-primary btn-sm">Filter</button>
+    <a href="/admin/requests" class="btn-secondary btn-sm">Clear</a>
+    <div class="ml-auto">
+      <button type="button" class="btn-danger btn-sm"
         onclick="if(confirm('Delete all stored requests?')) apiPost('/admin/requests/clear', {}).then(() => location.reload())">
         Clear all
       </button>
@@ -28,46 +31,69 @@
   </form>
 </div>
 
-<div class="card" style="padding:0;overflow:hidden">
-  <table>
+<!-- Table -->
+<div class="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden mb-4">
+  <table class="w-full" style="border-collapse:collapse">
     <thead>
       <tr>
-        <th>#</th>
-        <th>Time</th>
-        <th>Endpoint</th>
-        <th>Status</th>
-        <th>Request body</th>
-        <th>Response body</th>
+        <th class="th">#</th>
+        <th class="th">Time</th>
+        <th class="th">Endpoint</th>
+        <th class="th">Status</th>
+        <th class="th">Request body</th>
+        <th class="th">Response body</th>
       </tr>
     </thead>
     <tbody>
       <% if (rows.length === 0) { %>
-      <tr><td colspan="6" style="text-align:center;color:#888;padding:24px">No requests yet</td></tr>
+      <tr><td colspan="6" class="td text-center text-slate-500 py-10">No requests stored yet</td></tr>
       <% } %>
       <% rows.forEach(function(row) { %>
-      <tr>
-        <td class="text-mono"><%= row.id %></td>
-        <td class="text-sm" style="white-space:nowrap"><%= row.created_at %></td>
-        <td>
-          <span class="badge badge-<%= row.method.toLowerCase() %>"><%= row.method %></span>
-          <code style="font-size:12px"><%= row.path %></code>
+      <tr class="hover:bg-slate-800/30 transition-colors">
+        <td class="td font-mono text-slate-500 text-xs"><%= row.id %></td>
+        <td class="td text-xs text-slate-400 whitespace-nowrap"><%= row.created_at %></td>
+        <td class="td">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="badge badge-<%= row.method.toLowerCase() %>"><%= row.method %></span>
+            <code class="text-xs font-mono text-slate-300"><%= row.path %></code>
+          </div>
         </td>
-        <td>
+        <td class="td">
           <span class="badge <%= row.response_status < 300 ? 'badge-success' : 'badge-error' %>">
             <%= row.response_status %>
           </span>
         </td>
-        <td style="max-width:200px">
-          <details>
-            <summary class="text-sm">View</summary>
-            <pre><%= row.request_body || '—' %></pre>
-          </details>
+        <td class="td" style="max-width:200px">
+          <div x-data="{ open: false }">
+            <button @click="open=!open" type="button"
+              class="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5">
+              <svg :class="open && 'rotate-90'" class="w-2 h-2 transition-transform fill-current text-slate-600 shrink-0" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+              </svg>
+              View
+            </button>
+            <div x-show="open" x-cloak
+                 x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                 class="mt-2">
+              <pre class="text-xs font-mono bg-slate-800/60 border border-slate-700/50 rounded p-2 overflow-x-auto whitespace-pre-wrap break-all text-slate-300 max-h-32"><%= row.request_body || '—' %></pre>
+            </div>
+          </div>
         </td>
-        <td style="max-width:220px">
-          <details>
-            <summary class="text-sm">View</summary>
-            <pre><%= row.response_body || '—' %></pre>
-          </details>
+        <td class="td" style="max-width:220px">
+          <div x-data="{ open: false }">
+            <button @click="open=!open" type="button"
+              class="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5">
+              <svg :class="open && 'rotate-90'" class="w-2 h-2 transition-transform fill-current text-slate-600 shrink-0" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+              </svg>
+              View
+            </button>
+            <div x-show="open" x-cloak
+                 x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                 class="mt-2">
+              <pre class="text-xs font-mono bg-slate-800/60 border border-slate-700/50 rounded p-2 overflow-x-auto whitespace-pre-wrap break-all text-slate-300 max-h-32"><%= row.response_body || '—' %></pre>
+            </div>
+          </div>
         </td>
       </tr>
       <% }); %>
@@ -75,21 +101,26 @@
   </table>
 </div>
 
+<!-- Pagination -->
 <% const totalPages = Math.ceil(total / limit); %>
 <% if (totalPages > 1) { %>
-<div class="pagination">
-  <span class="text-sm"><%= total %> records</span>
+<div class="flex items-center gap-2">
+  <span class="text-xs text-slate-500 mr-1"><%= total %> records</span>
   <% if (page > 1) { %>
-  <a href="/admin/requests?page=<%= page - 1 %><%= endpoint ? '&endpoint=' + encodeURIComponent(endpoint) : '' %><%= status ? '&status=' + status : '' %>">← Prev</a>
+  <a href="/admin/requests?page=<%= page - 1 %><%= endpoint ? '&endpoint=' + encodeURIComponent(endpoint) : '' %><%= status ? '&status=' + status : '' %>"
+     class="px-2.5 py-1 border border-slate-700 rounded-md text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200 hover:border-slate-600 transition-colors">← Prev</a>
   <% } %>
   <% for (let p = Math.max(1, page - 2); p <= Math.min(totalPages, page + 2); p++) { %>
-  <% if (p === page) { %><span class="current"><%= p %></span>
+  <% if (p === page) { %>
+  <span class="px-2.5 py-1 bg-blue-600 text-white rounded-md text-xs font-medium"><%= p %></span>
   <% } else { %>
-  <a href="/admin/requests?page=<%= p %><%= endpoint ? '&endpoint=' + encodeURIComponent(endpoint) : '' %><%= status ? '&status=' + status : '' %>"><%= p %></a>
+  <a href="/admin/requests?page=<%= p %><%= endpoint ? '&endpoint=' + encodeURIComponent(endpoint) : '' %><%= status ? '&status=' + status : '' %>"
+     class="px-2.5 py-1 border border-slate-700 rounded-md text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200 hover:border-slate-600 transition-colors"><%= p %></a>
   <% } %>
   <% } %>
   <% if (page < totalPages) { %>
-  <a href="/admin/requests?page=<%= page + 1 %><%= endpoint ? '&endpoint=' + encodeURIComponent(endpoint) : '' %><%= status ? '&status=' + status : '' %>">Next →</a>
+  <a href="/admin/requests?page=<%= page + 1 %><%= endpoint ? '&endpoint=' + encodeURIComponent(endpoint) : '' %><%= status ? '&status=' + status : '' %>"
+     class="px-2.5 py-1 border border-slate-700 rounded-md text-xs text-slate-400 hover:bg-slate-800 hover:text-slate-200 hover:border-slate-600 transition-colors">Next →</a>
   <% } %>
 </div>
 <% } %>

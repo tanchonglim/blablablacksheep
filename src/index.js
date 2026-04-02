@@ -79,6 +79,12 @@ async function main() {
 
   const fastify = Fastify({ logger: { level: 'info' } });
 
+  // Static assets (compiled CSS + Alpine.js)
+  await fastify.register(require('@fastify/static'), {
+    root: path.join(__dirname, '../public'),
+    prefix: '/static/',
+  });
+
   // Form body parsing (for admin UI form submissions)
   await fastify.register(require('@fastify/formbody'));
 

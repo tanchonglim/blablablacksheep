@@ -1,179 +1,249 @@
 <% currentPage = 'endpoints'; %>
-<% function escAttr(s) { return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); } %>
+<% function escAttr(s) { return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); } %>
 <% function escText(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); } %>
 
-<h1>Mock Endpoints</h1>
-<div class="alert alert-info">
-  Changes take effect immediately — no restart needed. Overrides are stored in <code>config/overrides.json</code>.
-  The OpenAPI spec (<code>config/openapi.yaml</code>) is the source of truth for defaults.
-  Use the <strong>Active Response</strong> dropdown to select which response code to return. The first option (marked <em>default</em>) follows the spec order.
+<h1 class="text-xl font-semibold text-white mb-5">Mock Endpoints</h1>
+
+<div class="alert-info">
+  Changes take effect immediately — no restart needed. Overrides are stored in
+  <code class="font-mono text-xs bg-blue-900/30 text-blue-200 px-1.5 py-0.5 rounded">config/overrides.json</code>.
+  Use the <strong class="text-blue-200 font-semibold">Active Response</strong> dropdown to pin a response code.
 </div>
 
 <% endpoints.forEach(function(ep, i) { %>
 <% const key = ep.cfg.key; const cfg = ep.cfg; const ovr = overrides[key] || {}; %>
+<%
+  const selIdx = cfg.mode === 'pinned'
+    ? cfg.scenarios.findIndex(s => s.statusStr === cfg.pinnedStatus)
+    : 0;
+  const selScenario = cfg.scenarios[selIdx < 0 ? 0 : selIdx] || cfg.scenarios[0];
+  const selLabel = selScenario.status + ' \u2014 ' + (selScenario.description || '') + (selIdx <= 0 ? ' (default)' : '');
+%>
 <div class="card">
-  <!-- Full URL bar -->
-  <div class="flex" style="align-items:center;gap:8px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:7px 12px;margin-bottom:12px;font-family:'Courier New',monospace;font-size:13px">
-    <span style="color:#64748b;font-family:system-ui,sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">URL</span>
-    <span id="url-<%= i %>" data-path="<%= escAttr(ep.urlPath) %>" style="flex:1;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= ep.urlPath %></span>
-    <button class="btn btn-secondary btn-sm" style="padding:2px 10px;flex-shrink:0" onclick="copyUrl(<%= i %>)" title="Copy URL">Copy</button>
+
+  <!-- URL bar -->
+  <div class="flex items-center gap-2 bg-slate-800/60 border border-slate-700/50 rounded-md px-3 py-2 mb-4 font-mono text-xs">
+    <span class="text-slate-500 font-sans text-[10px] font-semibold uppercase tracking-wider shrink-0">URL</span>
+    <span id="url-<%= i %>" data-path="<%= escAttr(ep.urlPath) %>" class="flex-1 text-slate-300 truncate"><%= ep.urlPath %></span>
+    <button class="btn-secondary btn-sm shrink-0" onclick="copyUrl(<%= i %>)">Copy</button>
   </div>
 
-  <div class="flex" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
-    <div class="flex" style="flex-wrap:wrap;gap:8px">
+  <!-- Header -->
+  <div class="flex items-center justify-between flex-wrap gap-2">
+    <div class="flex items-center flex-wrap gap-2">
       <span class="badge badge-<%= ep.method.toLowerCase() %>"><%= ep.method %></span>
-      <code style="font-size:15px"><%= ep.urlPath %></code>
-      <% if (ep.operation.operationId) { %><span class="text-sm"><%= ep.operation.operationId %></span><% } %>
+      <code class="text-[13px] font-mono text-slate-200"><%= ep.urlPath %></code>
+      <% if (ep.operation.operationId) { %>
+      <span class="text-xs text-slate-500"><%= ep.operation.operationId %></span>
+      <% } %>
     </div>
-    <button class="btn btn-secondary btn-sm" onclick="resetAll('<%= escAttr(key) %>', this)">Reset All</button>
+    <button class="btn-secondary btn-sm" onclick="resetAll('<%= escAttr(key) %>', this)">Reset All</button>
   </div>
 
-  <!-- Response selector -->
-  <div style="margin-top:14px" class="flex" style="align-items:center;gap:10px">
-    <label style="font-size:13px;font-weight:600">Active Response</label>
-    <select style="width:auto;margin-left:10px" onchange="setActiveResponse('<%= escAttr(key) %>', this.value)">
-      <% cfg.scenarios.forEach(function(s, si) { %>
-      <%
-        const isSelected = cfg.mode === 'pinned'
-          ? cfg.pinnedStatus === s.statusStr
-          : si === 0;
-      %>
-      <option value="<%= s.statusStr %>" <%= isSelected ? 'selected' : '' %>>
-        <%= s.status %> — <%= escAttr(s.description) %><%= si === 0 ? ' (default)' : '' %>
-      </option>
-      <% }); %>
-    </select>
+  <!-- Active Response — custom Alpine dropdown -->
+  <div class="flex items-center gap-3 mt-4">
+    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider shrink-0">Active Response</span>
+    <div x-data="{ open: false, selV: '<%= escAttr(selScenario.statusStr) %>', selL: '<%= escAttr(selLabel) %>' }"
+         class="relative" style="min-width:260px;max-width:360px;flex:1"
+         @keydown.escape="open=false" @click.outside="open=false">
+      <button @click="open=!open" type="button"
+        class="w-full flex items-center justify-between gap-2 bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/60">
+        <span x-text="selL" class="truncate text-left leading-snug"></span>
+        <svg :class="open && 'rotate-180'" class="w-4 h-4 text-slate-500 transition-transform duration-150 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div x-show="open" x-cloak
+           x-transition:enter="transition ease-out duration-100"
+           x-transition:enter-start="opacity-0 -translate-y-1 scale-[0.98]"
+           x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+           x-transition:leave="transition ease-in duration-75"
+           x-transition:leave-start="opacity-100 scale-100"
+           x-transition:leave-end="opacity-0 scale-[0.98]"
+           class="absolute z-30 w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl shadow-black/50 overflow-hidden">
+        <% cfg.scenarios.forEach(function(s, si) { %>
+        <%
+          const isOpt = cfg.mode === 'pinned' ? cfg.pinnedStatus === s.statusStr : si === 0;
+          const optLabel = s.status + ' \u2014 ' + (s.description || '') + (si === 0 ? ' (default)' : '');
+        %>
+        <button type="button"
+          @click="selV='<%= escAttr(s.statusStr) %>'; selL='<%= escAttr(optLabel) %>'; open=false; setActiveResponseDirect('<%= escAttr(key) %>', '<%= escAttr(s.statusStr) %>', <%= si %>)"
+          class="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm transition-colors text-left
+                 <%= isOpt ? 'bg-blue-600/10 text-blue-300' : 'text-slate-300 hover:bg-slate-700/60' %>">
+          <div class="flex items-center gap-2">
+            <span class="badge <%= s.status < 300 ? 'badge-success' : 'badge-error' %>"><%= s.status %></span>
+            <span><%= escAttr(s.description) %><% if (si === 0) { %> <span class="text-slate-500">(default)</span><% } %></span>
+          </div>
+          <% if (isOpt) { %>
+          <svg class="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+          </svg>
+          <% } %>
+        </button>
+        <% }); %>
+      </div>
+    </div>
   </div>
 
   <!-- Scenarios -->
-  <div style="margin-top:14px">
-    <label style="font-size:13px;font-weight:600">Response Scenarios</label>
+  <div class="mt-5">
+    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Response Scenarios</div>
     <% cfg.scenarios.forEach(function(s, si) { %>
     <% const isBodyOverridden = ovr.body_overrides && ovr.body_overrides[s.statusStr] !== undefined; %>
     <% const isRandOverridden = ovr.randomize_overrides && ovr.randomize_overrides[s.statusStr] !== undefined; %>
-    <% const isFirst = si === 0; %>
     <% const currentBody = JSON.stringify(s.body, null, 2); %>
-    <% const statusClass = s.status < 300 ? 'badge-success' : 'badge-error'; %>
-    <div class="scenario-row" style="<%= isFirst && cfg.mode !== 'pinned' ? 'border-color:#2563eb' : '' %>">
-      <%
-        const isActive = cfg.mode === 'pinned'
-          ? cfg.pinnedStatus === s.statusStr
-          : si === 0;
-      %>
-      <div class="flex" style="gap:8px;flex-wrap:wrap">
-        <span class="badge <%= statusClass %>"><%= s.status %></span>
-        <span class="text-sm"><%= s.description %></span>
-        <% if (isActive) { %><span class="badge" style="background:#dbeafe;color:#1e40af"><%= isFirst ? 'default' : 'active' %></span><% } %>
+    <% const isActive = cfg.mode === 'pinned' ? cfg.pinnedStatus === s.statusStr : si === 0; %>
+    <div class="scenario-row" style="<%= si === 0 && cfg.mode !== 'pinned' ? 'border-color:rgba(37,99,235,0.45)' : '' %>">
+
+      <!-- Scenario header -->
+      <div class="flex items-center flex-wrap gap-2">
+        <span class="badge <%= s.status < 300 ? 'badge-success' : 'badge-error' %>"><%= s.status %></span>
+        <span class="text-xs text-slate-400"><%= s.description %></span>
+        <% if (isActive) { %>
+        <span class="badge bg-blue-950 text-blue-400"><%= si === 0 ? 'default' : 'active' %></span>
+        <% } %>
       </div>
 
       <!-- Edit response body -->
-      <details style="margin-top:10px">
-        <summary>
+      <div x-data="{ open: false }" class="mt-2.5">
+        <button @click="open=!open" type="button" class="collapse-trigger">
+          <svg :class="open && 'rotate-90'" class="collapse-chevron" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+          </svg>
           Edit response body
-          <span class="badge <%= isBodyOverridden ? 'badge-custom' : 'badge-default' %>" style="margin-left:6px"><%= isBodyOverridden ? 'custom' : 'spec default' %></span>
-        </summary>
-        <div style="margin-top:8px">
-          <textarea id="body-<%= i %>-<%= si %>" rows="6"><%= escText(currentBody) %></textarea>
-          <div class="flex" style="margin-top:6px;gap:6px">
-            <button class="btn btn-primary btn-sm" onclick="saveBody('<%= escAttr(key) %>', '<%= s.statusStr %>', <%= i %>, <%= si %>)">Save</button>
+          <span class="badge <%= isBodyOverridden ? 'badge-custom' : 'badge-default' %> ml-0.5"><%= isBodyOverridden ? 'custom' : 'spec default' %></span>
+        </button>
+        <div x-show="open" x-cloak
+             x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
+             class="mt-2">
+          <textarea id="body-<%= i %>-<%= si %>" rows="6" class="input"><%= escText(currentBody) %></textarea>
+          <div class="flex gap-2 mt-2">
+            <button class="btn-primary btn-sm" onclick="saveBody('<%= escAttr(key) %>', '<%= s.statusStr %>', <%= i %>, <%= si %>)">Save</button>
             <% if (isBodyOverridden) { %>
-            <button class="btn btn-secondary btn-sm" onclick="resetBody('<%= escAttr(key) %>', '<%= s.statusStr %>')">Reset to default</button>
+            <button class="btn-secondary btn-sm" onclick="resetBody('<%= escAttr(key) %>', '<%= s.statusStr %>')">Reset to default</button>
             <% } %>
           </div>
         </div>
-      </details>
+      </div>
 
       <!-- Randomize fields -->
-      <details style="margin-top:8px">
-        <summary>
+      <div x-data="{ open: false }" class="mt-0.5">
+        <button @click="open=!open" type="button" class="collapse-trigger">
+          <svg :class="open && 'rotate-90'" class="collapse-chevron" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+          </svg>
           Randomize fields
           <% if (Object.keys(s.randomize).length > 0) { %>
-          <span class="badge <%= isRandOverridden ? 'badge-custom' : 'badge-default' %>" style="margin-left:6px">
-            <%= isRandOverridden ? 'customized' : 'spec' %> (<%= Object.keys(s.randomize).length %> field<%= Object.keys(s.randomize).length !== 1 ? 's' : '' %>)
+          <span class="badge <%= isRandOverridden ? 'badge-custom' : 'badge-default' %> ml-0.5">
+            <%= isRandOverridden ? 'customized' : 'spec' %> (<%= Object.keys(s.randomize).length %>)
           </span>
           <% } else { %>
-          <span class="badge badge-default" style="margin-left:6px">none</span>
+          <span class="badge badge-default ml-0.5">none</span>
           <% } %>
-        </summary>
-        <div style="margin-top:10px">
-          <div class="text-sm" style="margin-bottom:8px;color:#555">
-            Each listed field will be replaced with a random string matching the regex on every request.
-          </div>
-          <table style="width:100%;font-size:13px;margin-bottom:8px">
+        </button>
+        <div x-show="open" x-cloak
+             x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
+             class="mt-2">
+          <p class="text-xs text-slate-500 mb-2">Each field is replaced with a random string matching the regex pattern on every request.</p>
+          <table class="w-full text-xs mb-2" style="border-collapse:collapse">
             <thead>
               <tr>
-                <th style="text-align:left;padding:4px 8px;background:#f9fafb;border-bottom:1px solid #e0e0e0;width:35%">Field name</th>
-                <th style="text-align:left;padding:4px 8px;background:#f9fafb;border-bottom:1px solid #e0e0e0">Regex pattern</th>
-                <th style="padding:4px 8px;background:#f9fafb;border-bottom:1px solid #e0e0e0;width:40px"></th>
+                <th class="text-left py-1.5 px-2 bg-slate-800/70 border-b border-slate-700 text-slate-400 font-semibold uppercase tracking-wider text-[10px]" style="width:36%">Field</th>
+                <th class="text-left py-1.5 px-2 bg-slate-800/70 border-b border-slate-700 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Regex pattern</th>
+                <th class="py-1.5 px-2 bg-slate-800/70 border-b border-slate-700" style="width:36px"></th>
               </tr>
             </thead>
             <tbody id="rand-rows-<%= i %>-<%= si %>">
-              <% Object.entries(s.randomize).forEach(function(entry) { %>
-              <% const [field, pattern] = entry; %>
+              <% Object.entries(s.randomize).forEach(function([field, pattern]) { %>
               <tr>
-                <td style="padding:4px 8px"><input type="text" value="<%= escAttr(field) %>" placeholder="fieldName" class="rand-field"></td>
-                <td style="padding:4px 8px"><input type="text" value="<%= escAttr(pattern) %>" placeholder="[A-Z]{2}[0-9]{6}" class="rand-pattern"></td>
-                <td style="padding:4px 8px"><button class="btn btn-secondary btn-sm" onclick="removeRandRow(this)">×</button></td>
+                <td class="py-1 px-2"><input type="text" value="<%= escAttr(field) %>" placeholder="fieldName" class="input rand-field"></td>
+                <td class="py-1 px-2"><input type="text" value="<%= escAttr(pattern) %>" placeholder="[A-Z]{2}[0-9]{6}" class="input rand-pattern"></td>
+                <td class="py-1 px-2 text-center"><button class="btn-secondary btn-sm !px-1.5" onclick="removeRandRow(this)">×</button></td>
               </tr>
               <% }); %>
             </tbody>
           </table>
-          <div class="flex" style="gap:6px">
-            <button class="btn btn-secondary btn-sm" onclick="addRandRow('rand-rows-<%= i %>-<%= si %>')">+ Add field</button>
-            <button class="btn btn-primary btn-sm" onclick="saveRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>', '<%= i %>-<%= si %>')">Save</button>
+          <div class="flex gap-2">
+            <button class="btn-secondary btn-sm" onclick="addRandRow('rand-rows-<%= i %>-<%= si %>')">+ Add field</button>
+            <button class="btn-primary btn-sm" onclick="saveRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>', '<%= i %>-<%= si %>')">Save</button>
             <% if (isRandOverridden) { %>
-            <button class="btn btn-secondary btn-sm" onclick="resetRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>')">Reset to spec</button>
+            <button class="btn-secondary btn-sm" onclick="resetRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>')">Reset to spec</button>
             <% } %>
           </div>
         </div>
-      </details>
+      </div>
+
     </div>
     <% }); %>
   </div>
 
-  <!-- Store on success -->
-  <div style="margin-top:14px" class="flex" style="align-items:center;gap:10px">
-    <label style="font-size:13px;font-weight:600">
+  <!-- Store on success — toggle switch -->
+  <div class="flex items-center gap-3 mt-5 pt-4 border-t border-slate-800/60">
+    <label class="toggle-wrap">
       <input type="checkbox" id="store-<%= i %>" <%= cfg.storeOnSuccess ? 'checked' : '' %> onchange="saveStore('<%= escAttr(key) %>', <%= i %>)">
-      Store requests on success
+      <div class="toggle-track"></div>
+      <span class="toggle-label">Store requests on success</span>
     </label>
-    <% if (ovr.store_on_success !== undefined) { %><span class="badge badge-custom" style="margin-left:6px">overridden</span><% } %>
+    <% if (ovr.store_on_success !== undefined) { %>
+    <span class="badge badge-custom">overridden</span>
+    <% } %>
   </div>
 
-  <!-- Delay -->
-  <details style="margin-top:14px">
-    <summary style="font-size:13px;font-weight:600">Delay settings</summary>
-    <div class="flex" style="margin-top:8px;gap:12px;align-items:center;flex-wrap:wrap">
-      <label style="font-size:13px">
-        <input type="checkbox" id="delay-en-<%= i %>" <%= ovr.delay_enabled !== false ? 'checked' : '' %>> Enabled
-      </label>
-      <label style="font-size:12px">Min ms: <input type="number" id="delay-min-<%= i %>" value="<%= (ovr.delay || cfg.delay).min_ms || 0 %>" style="width:80px;display:inline"></label>
-      <label style="font-size:12px">Max ms: <input type="number" id="delay-max-<%= i %>" value="<%= (ovr.delay || cfg.delay).max_ms || 0 %>" style="width:80px;display:inline"></label>
-      <button class="btn btn-secondary btn-sm" onclick="saveDelay('<%= escAttr(key) %>', <%= i %>)">Save</button>
+  <!-- Delay settings -->
+  <div x-data="{ open: false }" class="mt-1">
+    <button @click="open=!open" type="button" class="collapse-trigger">
+      <svg :class="open && 'rotate-90'" class="collapse-chevron" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+      </svg>
+      Delay settings
+      <% if (cfg.delay.max_ms > 0) { %>
+      <span class="badge badge-default ml-0.5"><%= cfg.delay.min_ms %>–<%= cfg.delay.max_ms %> ms</span>
+      <% } %>
+    </button>
+    <div x-show="open" x-cloak
+         x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
+         class="mt-3">
+      <div class="flex items-center flex-wrap gap-5">
+        <label class="toggle-wrap">
+          <input type="checkbox" id="delay-en-<%= i %>" <%= ovr.delay_enabled !== false ? 'checked' : '' %>>
+          <div class="toggle-track"></div>
+          <span class="toggle-label">Enabled</span>
+        </label>
+        <label class="flex items-center gap-2 text-xs text-slate-400">
+          Min ms
+          <input type="number" id="delay-min-<%= i %>" value="<%= (ovr.delay || cfg.delay).min_ms || 0 %>" class="input !w-20">
+        </label>
+        <label class="flex items-center gap-2 text-xs text-slate-400">
+          Max ms
+          <input type="number" id="delay-max-<%= i %>" value="<%= (ovr.delay || cfg.delay).max_ms || 0 %>" class="input !w-20">
+        </label>
+        <button class="btn-secondary btn-sm" onclick="saveDelay('<%= escAttr(key) %>', <%= i %>)">Save</button>
+      </div>
     </div>
-  </details>
+  </div>
+
 </div>
 <% }); %>
 
 <script>
-  function copyUrl(i) {
-    const el = document.getElementById('url-' + i);
-    const fullUrl = location.origin + el.dataset.path;
-    el.textContent = fullUrl; // show the full URL once resolved
-    navigator.clipboard.writeText(fullUrl).then(() => showToast('URL copied'));
-  }
-
-  // Resolve full URLs on load
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[id^="url-"]').forEach(el => {
       el.textContent = location.origin + el.dataset.path;
     });
   });
 
-  async function setActiveResponse(key, status) {
-    // First option value is the spec default — selecting it resets to default mode
-    const sel = event.target;
-    const isDefault = sel.selectedIndex === 0;
+  function copyUrl(i) {
+    const el = document.getElementById('url-' + i);
+    const fullUrl = location.origin + el.dataset.path;
+    el.textContent = fullUrl;
+    navigator.clipboard.writeText(fullUrl).then(() => showToast('URL copied'));
+  }
+
+  async function setActiveResponseDirect(key, status, si) {
+    const isDefault = si === 0;
     await apiPost('/admin/endpoints/mode', {
       key,
       mode: isDefault ? 'default' : 'pinned',
@@ -187,7 +257,7 @@
     const raw = document.getElementById('body-' + i + '-' + si).value;
     const result = await apiPost('/admin/endpoints/body', { key, status, body: raw });
     if (result.error) { alert('JSON error: ' + result.error); return; }
-    showToast('Body saved');
+    showToast('Body saved', 'success');
     setTimeout(() => location.reload(), 800);
   }
 
@@ -207,7 +277,7 @@
   async function saveStore(key, i) {
     const checked = document.getElementById('store-' + i).checked;
     await apiPost('/admin/endpoints/store', { key, store_on_success: checked });
-    showToast('Store setting saved');
+    showToast('Store setting saved', 'success');
     setTimeout(() => location.reload(), 800);
   }
 
@@ -216,16 +286,17 @@
     const min = document.getElementById('delay-min-' + i).value;
     const max = document.getElementById('delay-max-' + i).value;
     await apiPost('/admin/endpoints/delay', { key, delay_enabled: enabled, min_ms: min, max_ms: max });
-    showToast('Delay saved');
+    showToast('Delay saved', 'success');
   }
 
   function addRandRow(tbodyId) {
     const tbody = document.getElementById(tbodyId);
     const tr = document.createElement('tr');
+    const base = 'background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 8px;font-size:12px;color:#cbd5e1;width:100%;font-family:"IBM Plex Mono",monospace;outline:none;box-sizing:border-box';
     tr.innerHTML = `
-      <td style="padding:4px 8px"><input type="text" placeholder="fieldName" class="rand-field" style="border:1px solid #d1d5db;border-radius:6px;padding:6px 10px;font-size:13px;width:100%"></td>
-      <td style="padding:4px 8px"><input type="text" placeholder="[A-Z]{2}[0-9]{6}" class="rand-pattern" style="border:1px solid #d1d5db;border-radius:6px;padding:6px 10px;font-size:13px;width:100%"></td>
-      <td style="padding:4px 8px"><button class="btn btn-secondary btn-sm" onclick="removeRandRow(this)">×</button></td>
+      <td style="padding:4px 8px"><input type="text" placeholder="fieldName" class="rand-field" style="${base}"></td>
+      <td style="padding:4px 8px"><input type="text" placeholder="[A-Z]{2}[0-9]{6}" class="rand-pattern" style="${base}"></td>
+      <td style="padding:4px 8px;text-align:center"><button onclick="removeRandRow(this)" style="padding:2px 7px;background:#334155;border:none;border-radius:5px;color:#94a3b8;cursor:pointer;font-size:13px">×</button></td>
     `;
     tbody.appendChild(tr);
   }
@@ -236,16 +307,15 @@
 
   async function saveRandomize(key, status, rowKey) {
     const tbody = document.getElementById('rand-rows-' + rowKey);
-    const rows = tbody.querySelectorAll('tr');
     const patterns = {};
-    for (const row of rows) {
+    for (const row of tbody.querySelectorAll('tr')) {
       const field = row.querySelector('.rand-field')?.value?.trim();
       const pattern = row.querySelector('.rand-pattern')?.value?.trim();
       if (field && pattern) patterns[field] = pattern;
     }
     const result = await apiPost('/admin/endpoints/randomize', { key, status, patterns: JSON.stringify(patterns) });
     if (result.error) { alert('Error: ' + result.error); return; }
-    showToast('Randomize config saved');
+    showToast('Randomize config saved', 'success');
     setTimeout(() => location.reload(), 800);
   }
 
@@ -253,19 +323,5 @@
     await apiPost('/admin/endpoints/randomize/reset', { key, status });
     showToast('Reset to spec default');
     setTimeout(() => location.reload(), 800);
-  }
-
-  function showToast(msg) {
-    let t = document.getElementById('_toast');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = '_toast';
-      t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1a1a2e;color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;z-index:9999;transition:opacity .3s';
-      document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.style.opacity = '1';
-    clearTimeout(t._tmr);
-    t._tmr = setTimeout(() => t.style.opacity = '0', 2200);
   }
 </script>

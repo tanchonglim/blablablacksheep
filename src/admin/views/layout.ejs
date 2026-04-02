@@ -4,71 +4,42 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BlaBlaBlackSheep — Mock System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/tailwind.css">
+  <script defer src="/static/alpine.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; margin: 0; background: #f5f5f5; color: #1a1a1a; }
-    nav { background: #1a1a2e; color: #fff; padding: 0 24px; display: flex; align-items: center; gap: 24px; height: 52px; }
-    nav a { color: #ccc; text-decoration: none; font-size: 14px; padding: 4px 8px; border-radius: 4px; }
-    nav a:hover, nav a.active { color: #fff; background: #ffffff22; }
-    nav .brand { font-weight: 700; color: #fff; font-size: 16px; margin-right: 16px; }
-    main { padding: 24px; max-width: 1400px; margin: 0 auto; }
-    h1 { font-size: 22px; margin: 0 0 20px; }
-    h2 { font-size: 16px; margin: 0 0 12px; }
-    .card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-    .badge-success { background: #dcfce7; color: #166534; }
-    .badge-error { background: #fee2e2; color: #991b1b; }
-    .badge-custom { background: #fef3c7; color: #92400e; }
-    .badge-default { background: #e0e0e0; color: #555; }
-    .badge-running { background: #dbeafe; color: #1e40af; }
-    .badge-get { background: #d1fae5; color: #065f46; }
-    .badge-post { background: #dbeafe; color: #1e40af; }
-    .badge-put { background: #fef3c7; color: #92400e; }
-    .badge-patch { background: #ede9fe; color: #5b21b6; }
-    .badge-delete { background: #fee2e2; color: #991b1b; }
-    .btn { padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; }
-    .btn-primary { background: #2563eb; color: #fff; }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-danger { background: #ef4444; color: #fff; }
-    .btn-danger:hover { background: #dc2626; }
-    .btn-secondary { background: #e5e7eb; color: #374151; }
-    .btn-secondary:hover { background: #d1d5db; }
-    .btn-sm { padding: 3px 10px; font-size: 12px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { text-align: left; padding: 8px 12px; background: #f9fafb; border-bottom: 2px solid #e0e0e0; color: #555; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
-    td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
-    tr:hover td { background: #fafafa; }
-    input, select, textarea { border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: inherit; width: 100%; }
-    textarea { font-family: 'Courier New', monospace; font-size: 12px; }
-    .flex { display: flex; gap: 8px; align-items: center; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .text-sm { font-size: 12px; color: #666; }
-    .text-mono { font-family: 'Courier New', monospace; font-size: 12px; }
-    details summary { cursor: pointer; user-select: none; font-weight: 600; font-size: 13px; }
-    details summary:hover { color: #2563eb; }
-    .scenario-row { border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-top: 8px; }
-    .alert { padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
-    .alert-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
-    pre { background: #f8f8f8; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px; font-size: 12px; overflow-x: auto; margin: 0; white-space: pre-wrap; word-break: break-all; }
-    .pagination { display: flex; gap: 8px; margin-top: 16px; align-items: center; font-size: 13px; }
-    .pagination a { padding: 4px 10px; border: 1px solid #e0e0e0; border-radius: 4px; text-decoration: none; color: #374151; }
-    .pagination a:hover { background: #f3f4f6; }
-    .pagination .current { padding: 4px 10px; background: #2563eb; color: #fff; border-radius: 4px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #020617; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    body {
+      background-image: radial-gradient(circle at 1px 1px, rgba(100,116,139,0.06) 1px, transparent 0);
+      background-size: 28px 28px;
+    }
+    [x-cloak] { display: none !important; }
   </style>
 </head>
-<body>
-  <nav>
-    <span class="brand">BlaBlaBlackSheep</span>
-    <a href="/admin/endpoints" class="<%= currentPage === 'endpoints' ? 'active' : '' %>">Endpoints</a>
-    <a href="/admin/requests" class="<%= currentPage === 'requests' ? 'active' : '' %>">Requests</a>
-    <a href="/admin/jobs" class="<%= currentPage === 'jobs' ? 'active' : '' %>">Jobs</a>
-    <a href="/admin/files" class="<%= currentPage === 'files' ? 'active' : '' %>">Output Files</a>
+<body class="bg-slate-950 text-slate-300 font-sans min-h-screen">
+
+  <nav class="bg-slate-900/95 backdrop-blur border-b border-slate-800 sticky top-0 z-50">
+    <div class="max-w-[1400px] mx-auto px-6 flex items-center h-14 gap-1">
+      <a href="/admin" class="font-display font-extrabold text-white text-[15px] tracking-tight mr-6 hover:text-blue-300 transition-colors">
+        BlaBla<span class="text-blue-400">Black</span>Sheep
+      </a>
+      <a href="/admin/endpoints" class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors <%- currentPage === 'endpoints' ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-slate-800' %>">Endpoints</a>
+      <a href="/admin/requests"  class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors <%- currentPage === 'requests'  ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-slate-800' %>">Requests</a>
+      <a href="/admin/jobs"      class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors <%- currentPage === 'jobs'      ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-slate-800' %>">Jobs</a>
+      <a href="/admin/files"     class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors <%- currentPage === 'files'     ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-slate-800' %>">Output Files</a>
+    </div>
   </nav>
-  <main>
+
+  <main class="max-w-[1400px] mx-auto px-6 py-8">
     <%- body %>
   </main>
+
   <script>
-    // Generic JSON POST helper
     async function apiPost(url, data) {
       const res = await fetch(url, {
         method: 'POST',
@@ -78,7 +49,6 @@
       return res.json();
     }
 
-    // Form POST helper (for redirect-based forms)
     function formPost(url, data) {
       const form = document.createElement('form');
       form.method = 'POST';
@@ -92,6 +62,30 @@
       }
       document.body.appendChild(form);
       form.submit();
+    }
+
+    function showToast(msg, type = 'default') {
+      let t = document.getElementById('_toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = '_toast';
+        t.style.cssText = 'position:fixed;bottom:24px;right:24px;display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:10px;font-size:13px;font-family:"IBM Plex Sans",sans-serif;font-weight:500;z-index:9999;transition:opacity .25s,transform .25s;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+        document.body.appendChild(t);
+      }
+      const styles = {
+        default: { bg: '#1e293b', border: '1px solid #334155', color: '#e2e8f0', dot: '#64748b' },
+        success: { bg: '#052e16', border: '1px solid #166534', color: '#86efac', dot: '#22c55e' },
+        error:   { bg: '#450a0a', border: '1px solid #991b1b', color: '#fca5a5', dot: '#ef4444' },
+      };
+      const s = styles[type] || styles.default;
+      t.style.background = s.bg;
+      t.style.border = s.border;
+      t.style.color = s.color;
+      t.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:${s.dot};flex-shrink:0"></span>${msg}`;
+      t.style.opacity = '1';
+      t.style.transform = 'translateY(0)';
+      clearTimeout(t._tmr);
+      t._tmr = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(4px)'; }, 2200);
     }
   </script>
 </body>

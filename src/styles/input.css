@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/* Scan all EJS templates and admin JS for class usage */
+@source "../../src/admin/views/*.ejs";
+@source "../../src/admin/routes.js";
+
+/* Safelist dynamic classes built from EJS expressions (e.g. badge-<%= method %>) */
+@source inline("badge-get badge-post badge-put badge-patch badge-delete badge-success badge-error badge-custom badge-default badge-running");
+/* Alpine :class bindings */
+@source inline("rotate-90 rotate-180 opacity-0 opacity-100 scale-100 translate-y-0 -translate-y-1 -translate-y-0.5 translate-x-4");
+/* Nav active states */
+@source inline("bg-blue-600/20 text-blue-400 bg-blue-600/10 text-blue-300 hover:bg-slate-700/60");
+
+/* Custom fonts */
+@theme {
+  --font-sans:    'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', 'Courier New', monospace;
+  --font-display: 'Syne', system-ui, sans-serif;
+}
+
+/* ── Component classes ───────────────────────────────────────────────── */
+
+@layer components {
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium
+           bg-blue-600 hover:bg-blue-500 text-white transition-colors cursor-pointer
+           border-0 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium
+           bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors cursor-pointer
+           border-0 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-danger {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium
+           bg-red-700 hover:bg-red-600 text-white transition-colors cursor-pointer
+           border-0 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-sm {
+    @apply px-2 py-1 text-xs;
+  }
+
+  /* Badges */
+  .badge         { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold; }
+  .badge-success { @apply bg-emerald-950 text-emerald-400; }
+  .badge-error   { @apply bg-red-950 text-red-400; }
+  .badge-custom  { @apply bg-amber-950 text-amber-400; }
+  .badge-default { @apply bg-slate-800 text-slate-400; }
+  .badge-running { @apply bg-blue-950 text-blue-400; }
+  .badge-get     { @apply bg-emerald-950 text-emerald-400; }
+  .badge-post    { @apply bg-blue-950 text-blue-400; }
+  .badge-put     { @apply bg-amber-950 text-amber-400; }
+  .badge-patch   { @apply bg-purple-950 text-purple-400; }
+  .badge-delete  { @apply bg-red-950 text-red-400; }
+
+  /* Layout */
+  .card          { @apply bg-slate-900 border border-slate-800 rounded-lg p-4 mb-4; }
+  .scenario-row  { @apply border border-slate-800 rounded-lg p-3 mt-2; }
+  .alert-info    { @apply bg-blue-950/40 border border-blue-900/50 text-blue-300 rounded-lg px-4 py-3 text-sm mb-5; }
+
+  /* Table */
+  .th { @apply px-3 py-2.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-800/60 border-b border-slate-700; }
+  .td { @apply px-3 py-2.5 text-sm text-slate-300 border-b border-slate-800; }
+
+  /* Form: text input */
+  .input {
+    @apply bg-slate-800 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200
+           placeholder-slate-500 focus:outline-none focus:border-blue-500
+           focus:ring-1 focus:ring-blue-500/20 w-full font-sans transition-colors;
+  }
+  textarea.input { @apply font-mono text-xs leading-relaxed; }
+
+  /* Form: native select with custom chevron */
+  .select-wrap { @apply relative; }
+  .select-wrap select { @apply bg-slate-800 border border-slate-700 rounded-md px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 w-full font-sans transition-colors appearance-none pr-8 cursor-pointer; }
+  .select-wrap::after {
+    content: '';
+    @apply absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid #64748b;
+  }
+
+  /* Toggle switch — `peer` must be on the <input> in HTML, not via @apply */
+  .toggle-wrap  { @apply relative inline-flex items-center gap-3 cursor-pointer select-none; }
+  .toggle-wrap input { @apply sr-only; }
+  .toggle-track {
+    position: relative;
+    width: 2.25rem;  /* w-9  */
+    height: 1.25rem; /* h-5  */
+    border-radius: 9999px;
+    background-color: var(--color-slate-700);
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 0.125rem;  /* top-0.5 */
+    left: 0.125rem; /* left-0.5 */
+    width: 1rem;    /* w-4 */
+    height: 1rem;   /* h-4 */
+    border-radius: 9999px;
+    background: white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
+  }
+  /* checked state — driven by peer input */
+  .toggle-wrap input:checked ~ .toggle-track             { background-color: var(--color-blue-600); }
+  .toggle-wrap input:checked ~ .toggle-track::after      { transform: translateX(1rem); }
+  .toggle-label { @apply text-sm text-slate-300 transition-colors; }
+  .toggle-wrap:hover .toggle-label                       { color: var(--color-slate-100); }
+
+  /* Collapse trigger button */
+  .collapse-trigger  { @apply flex items-center gap-2 w-full text-left text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors py-1.5 cursor-pointer select-none; }
+  .collapse-chevron  { @apply w-2.5 h-2.5 text-slate-600 transition-transform duration-150 shrink-0 fill-current; }
+}
