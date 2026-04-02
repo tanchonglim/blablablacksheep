@@ -113,6 +113,16 @@ async function registerAdminRoutes(fastify, { getSpec }) {
     return { ok: true };
   });
 
+  // Save store_on_success override
+  fastify.post('/admin/endpoints/store', async (req, reply) => {
+    const { key, store_on_success } = req.body;
+    const overrides = readOverrides();
+    if (!overrides[key]) overrides[key] = {};
+    overrides[key].store_on_success = store_on_success !== 'false' && store_on_success !== false;
+    writeOverrides(overrides);
+    return { ok: true };
+  });
+
   // Reset all overrides for an endpoint
   fastify.post('/admin/endpoints/reset', async (req, reply) => {
     const { key } = req.body;

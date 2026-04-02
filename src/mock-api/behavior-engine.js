@@ -108,7 +108,7 @@ function buildEffectiveConfig(specEndpoint, overrides) {
 
   return {
     key,
-    storeOnSuccess: xMock.store_on_success ?? false,
+    storeOnSuccess: override.store_on_success ?? xMock.store_on_success ?? true,
     delay,
     mode: override.mode || 'default',
     pinnedStatus: override.pinned_status || null,

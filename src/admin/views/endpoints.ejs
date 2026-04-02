@@ -131,6 +131,15 @@
     <% }); %>
   </div>
 
+  <!-- Store on success -->
+  <div style="margin-top:14px" class="flex" style="align-items:center;gap:10px">
+    <label style="font-size:13px;font-weight:600">
+      <input type="checkbox" id="store-<%= i %>" <%= cfg.storeOnSuccess ? 'checked' : '' %> onchange="saveStore('<%= escAttr(key) %>', <%= i %>)">
+      Store requests on success
+    </label>
+    <% if (ovr.store_on_success !== undefined) { %><span class="badge badge-custom" style="margin-left:6px">overridden</span><% } %>
+  </div>
+
   <!-- Delay -->
   <details style="margin-top:14px">
     <summary style="font-size:13px;font-weight:600">Delay settings</summary>
@@ -192,6 +201,13 @@
     if (!confirm('Reset all overrides for this endpoint?')) return;
     await apiPost('/admin/endpoints/reset', { key });
     showToast('Reset complete');
+    setTimeout(() => location.reload(), 800);
+  }
+
+  async function saveStore(key, i) {
+    const checked = document.getElementById('store-' + i).checked;
+    await apiPost('/admin/endpoints/store', { key, store_on_success: checked });
+    showToast('Store setting saved');
     setTimeout(() => location.reload(), 800);
   }
 
