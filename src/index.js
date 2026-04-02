@@ -10,21 +10,57 @@ const { registerMockRoutes } = require('./mock-api/router');
 const { registerAdminRoutes } = require('./admin/routes');
 const { startScheduler } = require('./scheduler/job-manager');
 
-const OPENAPI_PATH = path.join(__dirname, '../config/openapi.yaml');
+const OPENAPI_DIR = path.join(__dirname, '../config/openapi');
 const OVERRIDES_PATH = path.join(__dirname, '../config/overrides.json');
 const OUTPUT_DIR = path.join(__dirname, '../output');
 const VIEWS_DIR = path.join(__dirname, 'admin/views');
 
 // Ensure directories exist
-for (const dir of [path.dirname(OVERRIDES_PATH), OUTPUT_DIR]) {
+for (const dir of [OPENAPI_DIR, path.dirname(OVERRIDES_PATH), OUTPUT_DIR]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 if (!fs.existsSync(OVERRIDES_PATH)) fs.writeFileSync(OVERRIDES_PATH, '{}');
 
-// Spec is loaded once at startup via @readme/openapi-parser (validates + dereferences $refs)
+// Merged spec is loaded once at startup — all .yaml/.yml files in config/openapi/ are combined.
+// paths from each file are merged; later files win on duplicate paths.
 let cachedSpec = null;
 function getSpec() {
   return cachedSpec;
+}
+
+// Load every .yaml/.yml file in OPENAPI_DIR, parse+validate each with @readme/openapi-parser,
+// then merge their paths into one combined spec object.
+async function loadMergedSpec() {
+  const files = fs.readdirSync(OPENAPI_DIR)
+    .filter(f => f.endsWith('.yaml') || f.endsWith('.yml'))
+    .sort(); // alphabetical — deterministic merge order
+
+  if (files.length === 0) {
+    throw new Error(`No .yaml/.yml files found in ${OPENAPI_DIR}`);
+  }
+
+  let merged = null;
+
+  for (const file of files) {
+    const filePath = path.join(OPENAPI_DIR, file);
+    const spec = await OpenAPIParser.dereference(filePath);
+
+    if (!merged) {
+      // First file becomes the base (carries info, openapi version, etc.)
+      merged = { ...spec, paths: { ...spec.paths } };
+    } else {
+      // Subsequent files: merge only paths (warn on duplicates)
+      for (const [urlPath, pathItem] of Object.entries(spec.paths || {})) {
+        if (merged.paths[urlPath]) {
+          console.warn(`[spec] Duplicate path "${urlPath}" in ${file} — overwriting previous definition`);
+        }
+        merged.paths[urlPath] = pathItem;
+      }
+    }
+  }
+
+  console.log(`[spec] Loaded ${files.length} file(s): ${files.join(', ')} — ${Object.keys(merged.paths).length} total paths`);
+  return merged;
 }
 
 // Overrides are hot-reloaded on every request
@@ -39,7 +75,7 @@ function getOverrides() {
 async function main() {
   // Parse, validate and dereference the OpenAPI spec at startup.
   // If the spec is invalid the server will refuse to start with a clear error.
-  cachedSpec = await OpenAPIParser.dereference(OPENAPI_PATH);
+  cachedSpec = await loadMergedSpec();
 
   const fastify = Fastify({ logger: { level: 'info' } });
 
