@@ -21,18 +21,37 @@ function substituteTokens(value) {
   return value;
 }
 
-// Apply regex-based randomization to top-level fields of a body object.
+// Set a value at a dot-notation path within an object (mutates obj in place).
+// Silently does nothing if an intermediate key is missing or not an object.
+function setNestedValue(obj, path, value) {
+  const parts = path.split('.');
+  let current = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (current[part] === null || typeof current[part] !== 'object') return;
+    current = current[part];
+  }
+  current[parts[parts.length - 1]] = value;
+}
+
+// Apply regex-based randomization to fields of a body object.
 // randomizeMap: { fieldName: regexString }
+// fieldName may use dot notation to target nested fields (e.g. "data.orderId").
 // Returns a new object; non-matching keys are left unchanged.
 function applyRandomize(body, randomizeMap) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return body;
   if (!randomizeMap || Object.keys(randomizeMap).length === 0) return body;
 
-  const result = { ...body };
+  const result = JSON.parse(JSON.stringify(body));
   for (const [field, pattern] of Object.entries(randomizeMap)) {
     if (pattern && typeof pattern === 'string') {
       try {
-        result[field] = new RandExp(pattern).gen();
+        const generated = new RandExp(pattern).gen();
+        if (field.includes('.')) {
+          setNestedValue(result, field, generated);
+        } else {
+          result[field] = generated;
+        }
       } catch {
         // Invalid regex — leave field unchanged
       }
