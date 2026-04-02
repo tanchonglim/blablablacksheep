@@ -62,7 +62,8 @@ Standard OpenAPI 3.0.3 plus an `x-mock` extension block per operation:
       responses:
         "200":
           randomize:
-            orderId: "[A-Z]{2}[0-9]{6}"   # regex — new value per request
+            orderId: "[A-Z]{2}[0-9]{6}"         # regex — top-level field
+            "shipping.trackingId": "[0-9]{12}"   # dot notation — nested field
     responses:
       "200":
         content:
@@ -70,6 +71,8 @@ Standard OpenAPI 3.0.3 plus an `x-mock` extension block per operation:
             example:
               orderId: "{{uuid}}"          # token — substituted per request
               status: "accepted"
+              shipping:
+                trackingId: "000000000000"
       "400":
         content:
           application/json:
