@@ -3,19 +3,43 @@
 const { v4: uuidv4 } = require('uuid');
 const RandExp = require('randexp');
 
-// Token substitution in response bodies
-function substituteTokens(value) {
+// Retrieve a value from an object using dot-notation path (e.g. "shipping.address.city").
+// Returns undefined if any intermediate key is missing.
+function getNestedValue(obj, path) {
+  if (obj == null) return undefined;
+  const parts = path.split('.');
+  let current = obj;
+  for (const part of parts) {
+    if (current == null || typeof current !== 'object') return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
+// Token substitution in response bodies.
+// requestContext (optional): { body, params, query, headers }
+// Supported dynamic tokens (in addition to built-ins):
+//   {{request.body.field}}        — value from request body (dot notation for nested)
+//   {{request.params.paramName}}  — URL path parameter
+//   {{request.query.paramName}}   — query string parameter
+//   {{request.headers.headerName}} — request header (lowercase name)
+function substituteTokens(value, requestContext) {
   if (typeof value === 'string') {
     return value
       .replace(/\{\{uuid\}\}/g, () => uuidv4())
       .replace(/\{\{timestamp\}\}/g, () => new Date().toISOString())
       .replace(/\{\{random_int\}\}/g, () => String(Math.floor(Math.random() * 100000)))
-      .replace(/\{\{date\}\}/g, () => new Date().toISOString().slice(0, 10));
+      .replace(/\{\{date\}\}/g, () => new Date().toISOString().slice(0, 10))
+      .replace(/\{\{request\.(body|params|query|headers)\.([^}]+)\}\}/g, (_match, source, path) => {
+        if (!requestContext) return '';
+        const val = getNestedValue(requestContext[source], path);
+        return val == null ? '' : String(val);
+      });
   }
-  if (Array.isArray(value)) return value.map(substituteTokens);
+  if (Array.isArray(value)) return value.map(v => substituteTokens(v, requestContext));
   if (value && typeof value === 'object') {
     const result = {};
-    for (const [k, v] of Object.entries(value)) result[k] = substituteTokens(v);
+    for (const [k, v] of Object.entries(value)) result[k] = substituteTokens(v, requestContext);
     return result;
   }
   return value;
@@ -117,7 +141,8 @@ function buildEffectiveConfig(specEndpoint, overrides) {
 }
 
 // Select a scenario and resolve its response
-function resolveResponse(specEndpoint, overrides) {
+// requestContext (optional): { body, params, query, headers } — forwarded to token substitution
+function resolveResponse(specEndpoint, overrides, requestContext) {
   const cfg = buildEffectiveConfig(specEndpoint, overrides);
 
   let scenario;
@@ -134,7 +159,7 @@ function resolveResponse(specEndpoint, overrides) {
     : 0;
 
   // Token substitution then regex randomization
-  let body = substituteTokens(scenario.body);
+  let body = substituteTokens(scenario.body, requestContext);
   body = applyRandomize(body, scenario.randomize);
 
   const isSuccess = scenario.status >= 200 && scenario.status < 300;

@@ -8,7 +8,7 @@ A self-contained Node.js mock enterprise API server with an admin UI, request hi
 - **Runtime overrides** — switch active response codes, edit response bodies, configure delays, and set regex randomization without restarting
 - **Request history** — successful requests are stored in SQLite and browsable in the admin UI
 - **Batch jobs** — drop a `.js` script in `scripts/` and run it manually or on a cron schedule
-- **Token substitution** — use `{{uuid}}`, `{{timestamp}}`, `{{date}}`, `{{random_int}}` in response bodies
+- **Token substitution** — use `{{uuid}}`, `{{timestamp}}`, `{{date}}`, `{{random_int}}` in response bodies, or echo back request values with `{{request.body.field}}`, `{{request.params.id}}`, `{{request.query.x}}`, `{{request.headers.x-api-key}}`
 - **Regex randomization** — generate random field values matching a regex pattern on every request
 
 ## Quick Start
@@ -95,6 +95,40 @@ The **first response code** in the spec is the default. Order matters.
 | `{{timestamp}}` | Current ISO 8601 datetime |
 | `{{date}}` | Current date (`YYYY-MM-DD`) |
 | `{{random_int}}` | Random integer |
+| `{{request.body.field}}` | Value from the request body (dot notation for nested: `{{request.body.shipping.city}}`) |
+| `{{request.params.name}}` | URL path parameter (e.g. `{orderId}` → `{{request.params.orderId}}`) |
+| `{{request.query.name}}` | Query string parameter |
+| `{{request.headers.name}}` | Request header (lowercase name, e.g. `{{request.headers.x-api-key}}`) |
+
+**Example** — echo back fields from the request body:
+
+```yaml
+/api/orders:
+  post:
+    responses:
+      "200":
+        content:
+          application/json:
+            example:
+              orderId: "{{uuid}}"
+              status: "accepted"
+              submittedBy: "{{request.body.customerId}}"   # echoes request body field
+              ref: "{{request.body.metadata.reference}}"  # nested field
+```
+
+**Example** — echo a URL path parameter in the response:
+
+```yaml
+/api/orders/{orderId}:
+  get:
+    responses:
+      "200":
+        content:
+          application/json:
+            example:
+              orderId: "{{request.params.orderId}}"
+              status: "shipped"
+```
 
 ### Runtime overrides
 
