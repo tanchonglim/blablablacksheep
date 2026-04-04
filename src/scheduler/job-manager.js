@@ -24,6 +24,7 @@ function loadScripts() {
           path: scriptPath,
           cron: mod.cron || null,
           description: mod.description || '',
+          outputPath: mod.outputPath || null,
         };
       } catch (err) {
         return {
