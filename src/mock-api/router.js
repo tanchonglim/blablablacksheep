@@ -31,7 +31,13 @@ async function registerMockRoutes(fastify, { getSpec, getOverrides }) {
 
       fastify[method](fastifyPath, async (req, reply) => {
         const overrides = getOverrides();
-        const result = resolveResponse(specEndpoint, overrides);
+        const requestContext = {
+          body: req.body,
+          params: req.params,
+          query: req.query,
+          headers: req.headers,
+        };
+        const result = resolveResponse(specEndpoint, overrides, requestContext);
 
         if (result.delayMs > 0) {
           await new Promise(r => setTimeout(r, result.delayMs));
