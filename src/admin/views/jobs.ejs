@@ -32,6 +32,14 @@
           <% if (s.description) { %>
           <div class="text-xs text-slate-400 mt-1.5"><%= s.description %></div>
           <% } %>
+          <% if (s.outputPath) { %>
+          <div class="flex items-center gap-1.5 text-xs text-slate-400 mt-1.5">
+            <svg class="w-3 h-3 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/>
+            </svg>
+            <code class="font-mono text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded"><%= s.outputPath %></code>
+          </div>
+          <% } %>
           <% if (s.error) { %>
           <div class="text-xs text-red-400 mt-1.5 font-mono">Error: <%= s.error %></div>
           <% } %>
