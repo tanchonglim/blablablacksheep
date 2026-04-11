@@ -24,8 +24,12 @@ if (!fs.existsSync(OVERRIDES_PATH)) fs.writeFileSync(OVERRIDES_PATH, '{}');
 // Merged spec is loaded once at startup — all .yaml/.yml files in config/openapi/ are combined.
 // paths from each file are merged; later files win on duplicate paths.
 let cachedSpec = null;
+let cachedSpecFiles = []; // [{ file, spec }] — per-file specs, in load order
 function getSpec() {
   return cachedSpec;
+}
+function getSpecFiles() {
+  return cachedSpecFiles;
 }
 
 // Load every .yaml/.yml file in OPENAPI_DIR, parse+validate each with @readme/openapi-parser,
@@ -40,10 +44,12 @@ async function loadMergedSpec() {
   }
 
   let merged = null;
+  cachedSpecFiles = [];
 
   for (const file of files) {
     const filePath = path.join(OPENAPI_DIR, file);
     const spec = await OpenAPIParser.dereference(filePath);
+    cachedSpecFiles.push({ file, spec });
 
     if (!merged) {
       // First file becomes the base (carries info, openapi version, etc.)
@@ -104,7 +110,7 @@ async function main() {
   });
 
   // Register admin routes first (more specific paths)
-  await registerAdminRoutes(fastify, { getSpec });
+  await registerAdminRoutes(fastify, { getSpec, getSpecFiles });
 
   // Register dynamic mock API routes from OpenAPI spec
   await registerMockRoutes(fastify, { getSpec, getOverrides });

@@ -22,25 +22,48 @@ function writeOverrides(data) {
   fs.writeFileSync(OVERRIDES_PATH, JSON.stringify(data, null, 2), 'utf8');
 }
 
-async function registerAdminRoutes(fastify, { getSpec }) {
+async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
   // ── Endpoints page ──────────────────────────────────────────────────────
   fastify.get('/admin/endpoints', async (req, reply) => {
-    const spec = getSpec();
+    const specFiles = getSpecFiles();
     const overrides = readOverrides();
-    const paths = spec.paths || {};
 
-    const endpoints = [];
-    for (const [urlPath, pathItem] of Object.entries(paths)) {
-      for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
-        const operation = pathItem[method];
-        if (!operation) continue;
-        const specEndpoint = { method, path: urlPath, ...operation, responses: operation.responses || {} };
-        const cfg = buildEffectiveConfig(specEndpoint, overrides);
-        endpoints.push({ method: method.toUpperCase(), urlPath, operation, cfg });
+    let globalIdx = 0;
+    const groups = [];
+
+    for (const { file, spec: fileSpec } of specFiles) {
+      const tagMap = new Map(); // tag -> endpoint[], preserves insertion order
+      const paths = fileSpec.paths || {};
+
+      for (const [urlPath, pathItem] of Object.entries(paths)) {
+        for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
+          const operation = pathItem[method];
+          if (!operation) continue;
+          const specEndpoint = { method, path: urlPath, ...operation, responses: operation.responses || {} };
+          const cfg = buildEffectiveConfig(specEndpoint, overrides);
+          const endpoint = { method: method.toUpperCase(), urlPath, operation, cfg, globalIdx: globalIdx++ };
+
+          // Use first tag for grouping; fall back to '(untagged)'
+          const tag = operation.tags?.[0] || '(untagged)';
+          if (!tagMap.has(tag)) tagMap.set(tag, []);
+          tagMap.get(tag).push(endpoint);
+        }
       }
+
+      // Sort tags alphabetically, keeping '(untagged)' last
+      const tagGroups = [...tagMap.entries()]
+        .sort(([a], [b]) => {
+          if (a === '(untagged)') return 1;
+          if (b === '(untagged)') return -1;
+          return a.localeCompare(b);
+        })
+        .map(([tag, endpoints]) => ({ tag, endpoints }));
+
+      const totalEndpoints = tagGroups.reduce((sum, tg) => sum + tg.endpoints.length, 0);
+      groups.push({ file, tagGroups, totalEndpoints });
     }
 
-    return reply.view('endpoints.ejs', { endpoints, overrides });
+    return reply.view('endpoints.ejs', { groups, overrides });
   });
 
   // Save scenario mode + pinned status
