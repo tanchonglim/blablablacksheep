@@ -10,223 +10,288 @@
   Use the <strong class="text-blue-200 font-semibold">Active Response</strong> dropdown to pin a response code.
 </div>
 
-<% endpoints.forEach(function(ep, i) { %>
-<% const key = ep.cfg.key; const cfg = ep.cfg; const ovr = overrides[key] || {}; %>
-<%
-  const selIdx = cfg.mode === 'pinned'
-    ? cfg.scenarios.findIndex(s => s.statusStr === cfg.pinnedStatus)
-    : 0;
-  const selScenario = cfg.scenarios[selIdx < 0 ? 0 : selIdx] || cfg.scenarios[0];
-  const selLabel = selScenario.status + ' \u2014 ' + (selScenario.description || '') + (selIdx <= 0 ? ' (default)' : '');
-%>
-<div class="card">
+<% groups.forEach(function(group, gi) { %>
+<!-- ── Spec file group ─────────────────────────────────────────────────── -->
+<div x-data="{ open: true }" class="mb-6">
 
-  <!-- URL bar -->
-  <div class="flex items-center gap-2 bg-slate-800/60 border border-slate-700/50 rounded-md px-3 py-2 mb-4 font-mono text-xs">
-    <span class="text-slate-500 font-sans text-[10px] font-semibold uppercase tracking-wider shrink-0">URL</span>
-    <span id="url-<%= i %>" data-path="<%= escAttr(ep.urlPath) %>" class="flex-1 text-slate-300 truncate"><%= ep.urlPath %></span>
-    <button class="btn-secondary btn-sm shrink-0" onclick="copyUrl(<%= i %>)">Copy</button>
-  </div>
+  <!-- Spec file header -->
+  <button @click="open=!open" type="button"
+    class="w-full flex items-center gap-3 px-4 py-3 mb-3 rounded-xl bg-slate-800/70 border border-slate-700/60 hover:border-slate-600/60 transition-colors text-left group">
+    <svg :class="open ? 'rotate-90' : ''" class="w-4 h-4 text-slate-500 transition-transform duration-150 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+    </svg>
+    <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <span class="font-mono text-sm font-semibold text-slate-200 flex-1"><%= group.file %></span>
+    <span class="text-xs text-slate-500 font-sans"><%= group.totalEndpoints %> endpoint<%= group.totalEndpoints !== 1 ? 's' : '' %></span>
+    <span class="text-xs text-slate-500 font-sans"><%= group.tagGroups.length %> tag<%= group.tagGroups.length !== 1 ? 's' : '' %></span>
+  </button>
 
-  <!-- Header -->
-  <div class="flex items-center justify-between flex-wrap gap-2">
-    <div class="flex items-center flex-wrap gap-2">
-      <span class="badge badge-<%= ep.method.toLowerCase() %>"><%= ep.method %></span>
-      <code class="text-[13px] font-mono text-slate-200"><%= ep.urlPath %></code>
-      <% if (ep.operation.operationId) { %>
-      <span class="text-xs text-slate-500"><%= ep.operation.operationId %></span>
-      <% } %>
-    </div>
-    <button class="btn-secondary btn-sm" onclick="resetAll('<%= escAttr(key) %>', this)">Reset All</button>
-  </div>
+  <div x-show="open" x-cloak
+       x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+       x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
+       class="pl-3">
 
-  <!-- Active Response — custom Alpine dropdown -->
-  <div class="flex items-center gap-3 mt-4">
-    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider shrink-0">Active Response</span>
-    <div x-data="{ open: false, selV: '<%= escAttr(selScenario.statusStr) %>', selL: '<%= escAttr(selLabel) %>' }"
-         class="relative" style="min-width:260px;max-width:360px;flex:1"
-         @keydown.escape="open=false" @click.outside="open=false">
+    <% group.tagGroups.forEach(function(tagGroup, tgi) { %>
+    <!-- ── Tag sub-group ──────────────────────────────────────────────── -->
+    <div x-data="{ open: true }" class="mb-4">
+
+      <!-- Tag header -->
       <button @click="open=!open" type="button"
-        class="w-full flex items-center justify-between gap-2 bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/60">
-        <span x-text="selL" class="truncate text-left leading-snug"></span>
-        <svg :class="open && 'rotate-180'" class="w-4 h-4 text-slate-500 transition-transform duration-150 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        class="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg border border-slate-700/40 bg-slate-900/40 hover:bg-slate-800/40 transition-colors text-left w-full">
+        <svg :class="open ? 'rotate-90' : ''" class="w-3.5 h-3.5 text-slate-600 transition-transform duration-150 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
         </svg>
-      </button>
-      <div x-show="open" x-cloak
-           x-transition:enter="transition ease-out duration-100"
-           x-transition:enter-start="opacity-0 -translate-y-1 scale-[0.98]"
-           x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-           x-transition:leave="transition ease-in duration-75"
-           x-transition:leave-start="opacity-100 scale-100"
-           x-transition:leave-end="opacity-0 scale-[0.98]"
-           class="absolute z-30 w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl shadow-black/50 overflow-hidden">
-        <% cfg.scenarios.forEach(function(s, si) { %>
-        <%
-          const isOpt = cfg.mode === 'pinned' ? cfg.pinnedStatus === s.statusStr : si === 0;
-          const optLabel = s.status + ' \u2014 ' + (s.description || '') + (si === 0 ? ' (default)' : '');
-        %>
-        <button type="button"
-          @click="selV='<%= escAttr(s.statusStr) %>'; selL='<%= escAttr(optLabel) %>'; open=false; setActiveResponseDirect('<%= escAttr(key) %>', '<%= escAttr(s.statusStr) %>', <%= si %>)"
-          class="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm transition-colors text-left
-                 <%= isOpt ? 'bg-blue-600/10 text-blue-300' : 'text-slate-300 hover:bg-slate-700/60' %>">
-          <div class="flex items-center gap-2">
-            <span class="badge <%= s.status < 300 ? 'badge-success' : 'badge-error' %>"><%= s.status %></span>
-            <span><%= escAttr(s.description) %><% if (si === 0) { %> <span class="text-slate-500">(default)</span><% } %></span>
-          </div>
-          <% if (isOpt) { %>
-          <svg class="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-          </svg>
-          <% } %>
-        </button>
-        <% }); %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Scenarios -->
-  <div class="mt-5">
-    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Response Scenarios</div>
-    <% cfg.scenarios.forEach(function(s, si) { %>
-    <% const isBodyOverridden = ovr.body_overrides && ovr.body_overrides[s.statusStr] !== undefined; %>
-    <% const isRandOverridden = ovr.randomize_overrides && ovr.randomize_overrides[s.statusStr] !== undefined; %>
-    <% const currentBody = JSON.stringify(s.body, null, 2); %>
-    <% const isActive = cfg.mode === 'pinned' ? cfg.pinnedStatus === s.statusStr : si === 0; %>
-    <div class="scenario-row" style="<%= si === 0 && cfg.mode !== 'pinned' ? 'border-color:rgba(37,99,235,0.45)' : '' %>">
-
-      <!-- Scenario header -->
-      <div class="flex items-center flex-wrap gap-2">
-        <span class="badge <%= s.status < 300 ? 'badge-success' : 'badge-error' %>"><%= s.status %></span>
-        <span class="text-xs text-slate-400"><%= s.description %></span>
-        <% if (isActive) { %>
-        <span class="badge bg-blue-950 text-blue-400"><%= si === 0 ? 'default' : 'active' %></span>
+        <% if (tagGroup.tag !== '(untagged)') { %>
+        <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 012-2z"/>
+        </svg>
+        <% } else { %>
+        <svg class="w-3.5 h-3.5 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+        </svg>
         <% } %>
-      </div>
+        <span class="text-sm font-semibold <%= tagGroup.tag === '(untagged)' ? 'text-slate-500 italic' : 'text-slate-300' %>"><%= tagGroup.tag %></span>
+        <span class="ml-1 text-xs text-slate-600"><%= tagGroup.endpoints.length %> endpoint<%= tagGroup.endpoints.length !== 1 ? 's' : '' %></span>
+      </button>
 
-      <!-- Edit response body -->
-      <div x-data="{ open: false }" class="mt-2.5">
-        <button @click="open=!open" type="button" class="collapse-trigger">
-          <svg :class="open && 'rotate-90'" class="collapse-chevron" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-          </svg>
-          Edit response body
-          <span class="badge <%= isBodyOverridden ? 'badge-custom' : 'badge-default' %> ml-0.5"><%= isBodyOverridden ? 'custom' : 'spec default' %></span>
-        </button>
-        <div x-show="open" x-cloak
-             x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
-             class="mt-2">
-          <textarea id="body-<%= i %>-<%= si %>" rows="6" class="input"><%= escText(currentBody) %></textarea>
-          <div class="flex gap-2 mt-2">
-            <button class="btn-primary btn-sm" onclick="saveBody('<%= escAttr(key) %>', '<%= s.statusStr %>', <%= i %>, <%= si %>)">Save</button>
-            <% if (isBodyOverridden) { %>
-            <button class="btn-secondary btn-sm" onclick="resetBody('<%= escAttr(key) %>', '<%= s.statusStr %>')">Reset to default</button>
-            <% } %>
+      <div x-show="open" x-cloak
+           x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
+           x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
+           class="pl-4">
+
+        <% tagGroup.endpoints.forEach(function(ep) { %>
+        <% const i = ep.globalIdx; %>
+        <% const key = ep.cfg.key; const cfg = ep.cfg; const ovr = overrides[key] || {}; %>
+        <%
+          const selIdx = cfg.mode === 'pinned'
+            ? cfg.scenarios.findIndex(s => s.statusStr === cfg.pinnedStatus)
+            : 0;
+          const selScenario = cfg.scenarios[selIdx < 0 ? 0 : selIdx] || cfg.scenarios[0];
+          const selLabel = selScenario.status + ' \u2014 ' + (selScenario.description || '') + (selIdx <= 0 ? ' (default)' : '');
+        %>
+        <div class="card">
+
+          <!-- URL bar -->
+          <div class="flex items-center gap-2 bg-slate-800/60 border border-slate-700/50 rounded-md px-3 py-2 mb-4 font-mono text-xs">
+            <span class="text-slate-500 font-sans text-[10px] font-semibold uppercase tracking-wider shrink-0">URL</span>
+            <span id="url-<%= i %>" data-path="<%= escAttr(ep.urlPath) %>" class="flex-1 text-slate-300 truncate"><%= ep.urlPath %></span>
+            <button class="btn-secondary btn-sm shrink-0" onclick="copyUrl(<%= i %>)">Copy</button>
           </div>
-        </div>
-      </div>
 
-      <!-- Randomize fields -->
-      <div x-data="{ open: false }" class="mt-0.5">
-        <button @click="open=!open" type="button" class="collapse-trigger">
-          <svg :class="open && 'rotate-90'" class="collapse-chevron" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-          </svg>
-          Randomize fields
-          <% if (Object.keys(s.randomize).length > 0) { %>
-          <span class="badge <%= isRandOverridden ? 'badge-custom' : 'badge-default' %> ml-0.5">
-            <%= isRandOverridden ? 'customized' : 'spec' %> (<%= Object.keys(s.randomize).length %>)
-          </span>
-          <% } else { %>
-          <span class="badge badge-default ml-0.5">none</span>
-          <% } %>
-        </button>
-        <div x-show="open" x-cloak
-             x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
-             class="mt-2">
-          <p class="text-xs text-slate-500 mb-2">Each field is replaced with a random string matching the regex pattern on every request.</p>
-          <table class="w-full text-xs mb-2" style="border-collapse:collapse">
-            <thead>
-              <tr>
-                <th class="text-left py-1.5 px-2 bg-slate-800/70 border-b border-slate-700 text-slate-400 font-semibold uppercase tracking-wider text-[10px]" style="width:36%">Field</th>
-                <th class="text-left py-1.5 px-2 bg-slate-800/70 border-b border-slate-700 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Regex pattern</th>
-                <th class="py-1.5 px-2 bg-slate-800/70 border-b border-slate-700" style="width:36px"></th>
-              </tr>
-            </thead>
-            <tbody id="rand-rows-<%= i %>-<%= si %>">
-              <% Object.entries(s.randomize).forEach(function([field, pattern]) { %>
-              <tr>
-                <td class="py-1 px-2"><input type="text" value="<%= escAttr(field) %>" placeholder="fieldName" class="input rand-field"></td>
-                <td class="py-1 px-2"><input type="text" value="<%= escAttr(pattern) %>" placeholder="[A-Z]{2}[0-9]{6}" class="input rand-pattern"></td>
-                <td class="py-1 px-2 text-center"><button class="btn-secondary btn-sm !px-1.5" onclick="removeRandRow(this)">×</button></td>
-              </tr>
+          <!-- Header -->
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center flex-wrap gap-2">
+              <span class="badge badge-<%= ep.method.toLowerCase() %>"><%= ep.method %></span>
+              <code class="text-[13px] font-mono text-slate-200"><%= ep.urlPath %></code>
+              <% if (ep.operation.operationId) { %>
+              <span class="text-xs text-slate-500"><%= ep.operation.operationId %></span>
+              <% } %>
+              <% if (ep.operation.tags && ep.operation.tags.length > 1) { %>
+              <% ep.operation.tags.slice(1).forEach(function(t) { %>
+              <span class="badge bg-slate-800 text-slate-500 border border-slate-700/50 text-[10px]"><%= t %></span>
               <% }); %>
-            </tbody>
-          </table>
-          <div class="flex gap-2">
-            <button class="btn-secondary btn-sm" onclick="addRandRow('rand-rows-<%= i %>-<%= si %>')">+ Add field</button>
-            <button class="btn-primary btn-sm" onclick="saveRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>', '<%= i %>-<%= si %>')">Save</button>
-            <% if (isRandOverridden) { %>
-            <button class="btn-secondary btn-sm" onclick="resetRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>')">Reset to spec</button>
+              <% } %>
+            </div>
+            <button class="btn-secondary btn-sm" onclick="resetAll('<%= escAttr(key) %>', this)">Reset All</button>
+          </div>
+
+          <!-- Active Response — custom Alpine dropdown -->
+          <div class="flex items-center gap-3 mt-4">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider shrink-0">Active Response</span>
+            <div x-data="{ open: false, selV: '<%= escAttr(selScenario.statusStr) %>', selL: '<%= escAttr(selLabel) %>' }"
+                 class="relative" style="min-width:260px;max-width:360px;flex:1"
+                 @keydown.escape="open=false" @click.outside="open=false">
+              <button @click="open=!open" type="button"
+                class="w-full flex items-center justify-between gap-2 bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/60">
+                <span x-text="selL" class="truncate text-left leading-snug"></span>
+                <svg :class="open && 'rotate-180'" class="w-4 h-4 text-slate-500 transition-transform duration-150 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              <div x-show="open" x-cloak
+                   x-transition:enter="transition ease-out duration-100"
+                   x-transition:enter-start="opacity-0 -translate-y-1 scale-[0.98]"
+                   x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                   x-transition:leave="transition ease-in duration-75"
+                   x-transition:leave-start="opacity-100 scale-100"
+                   x-transition:leave-end="opacity-0 scale-[0.98]"
+                   class="absolute z-30 w-full mt-1.5 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl shadow-black/50 overflow-hidden">
+                <% cfg.scenarios.forEach(function(s, si) { %>
+                <%
+                  const isOpt = cfg.mode === 'pinned' ? cfg.pinnedStatus === s.statusStr : si === 0;
+                  const optLabel = s.status + ' \u2014 ' + (s.description || '') + (si === 0 ? ' (default)' : '');
+                %>
+                <button type="button"
+                  @click="selV='<%= escAttr(s.statusStr) %>'; selL='<%= escAttr(optLabel) %>'; open=false; setActiveResponseDirect('<%= escAttr(key) %>', '<%= escAttr(s.statusStr) %>', <%= si %>)"
+                  class="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-sm transition-colors text-left
+                         <%= isOpt ? 'bg-blue-600/10 text-blue-300' : 'text-slate-300 hover:bg-slate-700/60' %>">
+                  <div class="flex items-center gap-2">
+                    <span class="badge <%= s.status < 300 ? 'badge-success' : 'badge-error' %>"><%= s.status %></span>
+                    <span><%= escAttr(s.description) %><% if (si === 0) { %> <span class="text-slate-500">(default)</span><% } %></span>
+                  </div>
+                  <% if (isOpt) { %>
+                  <svg class="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  <% } %>
+                </button>
+                <% }); %>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scenarios -->
+          <div class="mt-5">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Response Scenarios</div>
+            <% cfg.scenarios.forEach(function(s, si) { %>
+            <% const isBodyOverridden = ovr.body_overrides && ovr.body_overrides[s.statusStr] !== undefined; %>
+            <% const isRandOverridden = ovr.randomize_overrides && ovr.randomize_overrides[s.statusStr] !== undefined; %>
+            <% const currentBody = JSON.stringify(s.body, null, 2); %>
+            <% const isActive = cfg.mode === 'pinned' ? cfg.pinnedStatus === s.statusStr : si === 0; %>
+            <div class="scenario-row" style="<%= si === 0 && cfg.mode !== 'pinned' ? 'border-color:rgba(37,99,235,0.45)' : '' %>">
+
+              <!-- Scenario header -->
+              <div class="flex items-center flex-wrap gap-2">
+                <span class="badge <%= s.status < 300 ? 'badge-success' : 'badge-error' %>"><%= s.status %></span>
+                <span class="text-xs text-slate-400"><%= s.description %></span>
+                <% if (isActive) { %>
+                <span class="badge bg-blue-950 text-blue-400"><%= si === 0 ? 'default' : 'active' %></span>
+                <% } %>
+              </div>
+
+              <!-- Edit response body -->
+              <div x-data="{ open: false }" class="mt-2.5">
+                <button @click="open=!open" type="button" class="collapse-trigger">
+                  <svg :class="open && 'rotate-90'" class="collapse-chevron" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Edit response body
+                  <span class="badge <%= isBodyOverridden ? 'badge-custom' : 'badge-default' %> ml-0.5"><%= isBodyOverridden ? 'custom' : 'spec default' %></span>
+                </button>
+                <div x-show="open" x-cloak
+                     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
+                     class="mt-2">
+                  <textarea id="body-<%= i %>-<%= si %>" rows="6" class="input"><%= escText(currentBody) %></textarea>
+                  <div class="flex gap-2 mt-2">
+                    <button class="btn-primary btn-sm" onclick="saveBody('<%= escAttr(key) %>', '<%= s.statusStr %>', <%= i %>, <%= si %>)">Save</button>
+                    <% if (isBodyOverridden) { %>
+                    <button class="btn-secondary btn-sm" onclick="resetBody('<%= escAttr(key) %>', '<%= s.statusStr %>')">Reset to default</button>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Randomize fields -->
+              <div x-data="{ open: false }" class="mt-0.5">
+                <button @click="open=!open" type="button" class="collapse-trigger">
+                  <svg :class="open && 'rotate-90'" class="collapse-chevron" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+                  </svg>
+                  Randomize fields
+                  <% if (Object.keys(s.randomize).length > 0) { %>
+                  <span class="badge <%= isRandOverridden ? 'badge-custom' : 'badge-default' %> ml-0.5">
+                    <%= isRandOverridden ? 'customized' : 'spec' %> (<%= Object.keys(s.randomize).length %>)
+                  </span>
+                  <% } else { %>
+                  <span class="badge badge-default ml-0.5">none</span>
+                  <% } %>
+                </button>
+                <div x-show="open" x-cloak
+                     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
+                     class="mt-2">
+                  <p class="text-xs text-slate-500 mb-2">Each field is replaced with a random string matching the regex pattern on every request.</p>
+                  <table class="w-full text-xs mb-2" style="border-collapse:collapse">
+                    <thead>
+                      <tr>
+                        <th class="text-left py-1.5 px-2 bg-slate-800/70 border-b border-slate-700 text-slate-400 font-semibold uppercase tracking-wider text-[10px]" style="width:36%">Field</th>
+                        <th class="text-left py-1.5 px-2 bg-slate-800/70 border-b border-slate-700 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Regex pattern</th>
+                        <th class="py-1.5 px-2 bg-slate-800/70 border-b border-slate-700" style="width:36px"></th>
+                      </tr>
+                    </thead>
+                    <tbody id="rand-rows-<%= i %>-<%= si %>">
+                      <% Object.entries(s.randomize).forEach(function([field, pattern]) { %>
+                      <tr>
+                        <td class="py-1 px-2"><input type="text" value="<%= escAttr(field) %>" placeholder="fieldName" class="input rand-field"></td>
+                        <td class="py-1 px-2"><input type="text" value="<%= escAttr(pattern) %>" placeholder="[A-Z]{2}[0-9]{6}" class="input rand-pattern"></td>
+                        <td class="py-1 px-2 text-center"><button class="btn-secondary btn-sm !px-1.5" onclick="removeRandRow(this)">×</button></td>
+                      </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                  <div class="flex gap-2">
+                    <button class="btn-secondary btn-sm" onclick="addRandRow('rand-rows-<%= i %>-<%= si %>')">+ Add field</button>
+                    <button class="btn-primary btn-sm" onclick="saveRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>', '<%= i %>-<%= si %>')">Save</button>
+                    <% if (isRandOverridden) { %>
+                    <button class="btn-secondary btn-sm" onclick="resetRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>')">Reset to spec</button>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+            <% }); %>
+          </div>
+
+          <!-- Store on success — toggle switch -->
+          <div class="flex items-center gap-3 mt-5 pt-4 border-t border-slate-800/60">
+            <label class="toggle-wrap">
+              <input type="checkbox" id="store-<%= i %>" <%= cfg.storeOnSuccess ? 'checked' : '' %> onchange="saveStore('<%= escAttr(key) %>', <%= i %>)">
+              <div class="toggle-track"></div>
+              <span class="toggle-label">Store requests on success</span>
+            </label>
+            <% if (ovr.store_on_success !== undefined) { %>
+            <span class="badge badge-custom">overridden</span>
             <% } %>
           </div>
+
+          <!-- Delay settings -->
+          <div x-data="{ open: false }" class="mt-1">
+            <button @click="open=!open" type="button" class="collapse-trigger">
+              <svg :class="open && 'rotate-90'" class="collapse-chevron" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+              </svg>
+              Delay settings
+              <% if (cfg.delay.max_ms > 0) { %>
+              <span class="badge badge-default ml-0.5"><%= cfg.delay.min_ms %>–<%= cfg.delay.max_ms %> ms</span>
+              <% } %>
+            </button>
+            <div x-show="open" x-cloak
+                 x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
+                 class="mt-3">
+              <div class="flex items-center flex-wrap gap-5">
+                <label class="toggle-wrap">
+                  <input type="checkbox" id="delay-en-<%= i %>" <%= ovr.delay_enabled !== false ? 'checked' : '' %>>
+                  <div class="toggle-track"></div>
+                  <span class="toggle-label">Enabled</span>
+                </label>
+                <label class="flex items-center gap-2 text-xs text-slate-400">
+                  Min ms
+                  <input type="number" id="delay-min-<%= i %>" value="<%= (ovr.delay || cfg.delay).min_ms || 0 %>" class="input !w-20">
+                </label>
+                <label class="flex items-center gap-2 text-xs text-slate-400">
+                  Max ms
+                  <input type="number" id="delay-max-<%= i %>" value="<%= (ovr.delay || cfg.delay).max_ms || 0 %>" class="input !w-20">
+                </label>
+                <button class="btn-secondary btn-sm" onclick="saveDelay('<%= escAttr(key) %>', <%= i %>)">Save</button>
+              </div>
+            </div>
+          </div>
+
         </div>
-      </div>
+        <% }); %><!-- end tagGroup.endpoints -->
 
-    </div>
-    <% }); %>
-  </div>
-
-  <!-- Store on success — toggle switch -->
-  <div class="flex items-center gap-3 mt-5 pt-4 border-t border-slate-800/60">
-    <label class="toggle-wrap">
-      <input type="checkbox" id="store-<%= i %>" <%= cfg.storeOnSuccess ? 'checked' : '' %> onchange="saveStore('<%= escAttr(key) %>', <%= i %>)">
-      <div class="toggle-track"></div>
-      <span class="toggle-label">Store requests on success</span>
-    </label>
-    <% if (ovr.store_on_success !== undefined) { %>
-    <span class="badge badge-custom">overridden</span>
-    <% } %>
-  </div>
-
-  <!-- Delay settings -->
-  <div x-data="{ open: false }" class="mt-1">
-    <button @click="open=!open" type="button" class="collapse-trigger">
-      <svg :class="open && 'rotate-90'" class="collapse-chevron" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-      </svg>
-      Delay settings
-      <% if (cfg.delay.max_ms > 0) { %>
-      <span class="badge badge-default ml-0.5"><%= cfg.delay.min_ms %>–<%= cfg.delay.max_ms %> ms</span>
-      <% } %>
-    </button>
-    <div x-show="open" x-cloak
-         x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
-         x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
-         class="mt-3">
-      <div class="flex items-center flex-wrap gap-5">
-        <label class="toggle-wrap">
-          <input type="checkbox" id="delay-en-<%= i %>" <%= ovr.delay_enabled !== false ? 'checked' : '' %>>
-          <div class="toggle-track"></div>
-          <span class="toggle-label">Enabled</span>
-        </label>
-        <label class="flex items-center gap-2 text-xs text-slate-400">
-          Min ms
-          <input type="number" id="delay-min-<%= i %>" value="<%= (ovr.delay || cfg.delay).min_ms || 0 %>" class="input !w-20">
-        </label>
-        <label class="flex items-center gap-2 text-xs text-slate-400">
-          Max ms
-          <input type="number" id="delay-max-<%= i %>" value="<%= (ovr.delay || cfg.delay).max_ms || 0 %>" class="input !w-20">
-        </label>
-        <button class="btn-secondary btn-sm" onclick="saveDelay('<%= escAttr(key) %>', <%= i %>)">Save</button>
       </div>
     </div>
-  </div>
+    <% }); %><!-- end tagGroups -->
 
+  </div>
 </div>
-<% }); %>
+<% }); %><!-- end groups -->
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
