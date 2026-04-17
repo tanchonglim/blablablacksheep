@@ -95,15 +95,32 @@ function buildEffectiveConfig(specEndpoint, overrides) {
     // Resolve default body from OpenAPI example.
     // Supports both formats:
     //   example: { ... }                          (singular — OpenAPI 3.0.x)
-    //   examples: { default: { value: { ... } } } (named examples — OpenAPI 3.0.x / 3.1.x)
+    //   examples: { name: { value: { ... } } }    (named examples — OpenAPI 3.0.x / 3.1.x)
     const contentEntry = respDef.content ? Object.values(respDef.content)[0] : null;
+
+    // Collect all named examples for this status code
+    const examples = contentEntry?.examples
+      ? Object.entries(contentEntry.examples).map(([name, ex]) => ({
+          name,
+          value: ex?.value ?? null,
+          summary: ex?.summary || name,
+        }))
+      : [];
+
+    // Determine which named example is active (via override, else first)
+    const exampleOverrideName = override.example_overrides?.[status] || null;
+    const selectedExampleName = exampleOverrideName && examples.some(e => e.name === exampleOverrideName)
+      ? exampleOverrideName
+      : (examples.length > 0 ? examples[0].name : null);
+
+    // Resolve default body: singular example > selected named example
     let defaultBody = contentEntry?.example ?? null;
-    if (defaultBody === null && contentEntry?.examples) {
-      const firstExample = Object.values(contentEntry.examples)[0];
-      defaultBody = firstExample?.value ?? null;
+    if (defaultBody === null && examples.length > 0) {
+      const selectedEx = examples.find(e => e.name === selectedExampleName) || examples[0];
+      defaultBody = selectedEx.value;
     }
 
-    // Override body from admin UI
+    // Override body from admin UI (takes priority over everything)
     const bodyOverride = override.body_overrides?.[status];
     const body = bodyOverride !== undefined ? bodyOverride : defaultBody;
 
@@ -120,6 +137,9 @@ function buildEffectiveConfig(specEndpoint, overrides) {
       randomize,
       hasSpecRandomize: Object.keys(specRandomize).length > 0,
       hasOverrideRandomize: Object.keys(overrideRandomize).length > 0,
+      examples,
+      selectedExample: selectedExampleName,
+      hasExampleOverride: !!exampleOverrideName,
     };
   });
 
