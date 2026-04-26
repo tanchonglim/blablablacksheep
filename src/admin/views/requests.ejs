@@ -40,13 +40,14 @@
         <th class="th">Time</th>
         <th class="th">Endpoint</th>
         <th class="th">Status</th>
+        <th class="th">Request headers</th>
         <th class="th">Request body</th>
         <th class="th">Response body</th>
       </tr>
     </thead>
     <tbody>
       <% if (rows.length === 0) { %>
-      <tr><td colspan="6" class="td text-center text-slate-500 py-10">No requests stored yet</td></tr>
+      <tr><td colspan="7" class="td text-center text-slate-500 py-10">No requests stored yet</td></tr>
       <% } %>
       <% rows.forEach(function(row) { %>
       <tr class="hover:bg-slate-800/30 transition-colors">
@@ -62,6 +63,22 @@
           <span class="badge <%= row.response_status < 300 ? 'badge-success' : 'badge-error' %>">
             <%= row.response_status %>
           </span>
+        </td>
+        <td class="td" style="max-width:200px">
+          <div x-data="{ open: false }">
+            <button @click="open=!open" type="button"
+              class="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5">
+              <svg :class="open && 'rotate-90'" class="w-2 h-2 transition-transform fill-current text-slate-600 shrink-0" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+              </svg>
+              View
+            </button>
+            <div x-show="open" x-cloak
+                 x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                 class="mt-2">
+              <pre class="text-xs font-mono bg-slate-800/60 border border-slate-700/50 rounded p-2 overflow-x-auto whitespace-pre-wrap break-all text-slate-300 max-h-32"><%= row.request_headers ? JSON.stringify(JSON.parse(row.request_headers), null, 2) : '—' %></pre>
+            </div>
+          </div>
         </td>
         <td class="td" style="max-width:200px">
           <div x-data="{ open: false }">
