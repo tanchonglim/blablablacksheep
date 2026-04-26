@@ -43,6 +43,8 @@ async function registerMockRoutes(fastify, { getSpec, getOverrides }) {
           await new Promise(r => setTimeout(r, result.delayMs));
         }
 
+        fastify.log.info({ headers: req.headers }, `${method.toUpperCase()} ${req.url}`);
+
         if (result.storeInDb) {
           try {
             storeRequest({
