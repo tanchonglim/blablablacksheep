@@ -133,6 +133,7 @@ function buildEffectiveConfig(specEndpoint, overrides) {
       status: parseInt(status, 10),
       statusStr: status,
       body,
+      defaultBody,
       description: respDef.description || '',
       randomize,
       hasSpecRandomize: Object.keys(specRandomize).length > 0,

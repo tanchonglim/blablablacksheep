@@ -149,6 +149,7 @@
             <% const isBodyOverridden = ovr.body_overrides && ovr.body_overrides[s.statusStr] !== undefined; %>
             <% const isRandOverridden = ovr.randomize_overrides && ovr.randomize_overrides[s.statusStr] !== undefined; %>
             <% const currentBody = JSON.stringify(s.body, null, 2); %>
+            <% const defaultBodyJson = JSON.stringify(s.defaultBody, null, 2); %>
             <% const isActive = cfg.mode === 'pinned' ? cfg.pinnedStatus === s.statusStr : si === 0; %>
             <div class="scenario-row" style="<%= si === 0 && cfg.mode !== 'pinned' ? 'border-color:rgba(37,99,235,0.45)' : '' %>">
 
@@ -180,72 +181,63 @@
               </div>
               <% } %>
 
-              <!-- Edit response body -->
-              <div x-data="{ open: false }" class="mt-2.5">
+              <!-- Edit response body (randomize fields merged in) -->
+              <div x-data="{ open: false }" class="mt-2.5"
+                   x-init="$watch('open', function(v) { if (v) $nextTick(function() { renderBodyDiff(<%= i %>, <%= si %>) }) })">
                 <button @click="open=!open" type="button" class="collapse-trigger">
                   <svg :class="open && 'rotate-90'" class="collapse-chevron" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
                   </svg>
                   Edit response body
                   <span class="badge <%= isBodyOverridden ? 'badge-custom' : 'badge-default' %> ml-0.5"><%= isBodyOverridden ? 'custom' : 'spec default' %></span>
-                </button>
-                <div x-show="open" x-cloak
-                     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
-                     x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
-                     class="mt-2">
-                  <textarea id="body-<%= i %>-<%= si %>" rows="6" class="input"><%= escText(currentBody) %></textarea>
-                  <div class="flex gap-2 mt-2">
-                    <button class="btn-primary btn-sm" onclick="saveBody('<%= escAttr(key) %>', '<%= s.statusStr %>', <%= i %>, <%= si %>)">Save</button>
-                    <% if (isBodyOverridden) { %>
-                    <button class="btn-secondary btn-sm" onclick="resetBody('<%= escAttr(key) %>', '<%= s.statusStr %>')">Reset to default</button>
-                    <% } %>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Randomize fields -->
-              <div x-data="{ open: false }" class="mt-0.5">
-                <button @click="open=!open" type="button" class="collapse-trigger">
-                  <svg :class="open && 'rotate-90'" class="collapse-chevron" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                  </svg>
-                  Randomize fields
                   <% if (Object.keys(s.randomize).length > 0) { %>
-                  <span class="badge <%= isRandOverridden ? 'badge-custom' : 'badge-default' %> ml-0.5">
-                    <%= isRandOverridden ? 'customized' : 'spec' %> (<%= Object.keys(s.randomize).length %>)
-                  </span>
-                  <% } else { %>
-                  <span class="badge badge-default ml-0.5">none</span>
+                  <span class="badge <%= isRandOverridden ? 'badge-custom' : 'badge-default' %> ml-0.5">randomize (<%= Object.keys(s.randomize).length %>)</span>
                   <% } %>
                 </button>
                 <div x-show="open" x-cloak
                      x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0"
                      x-transition:leave="transition ease-in duration-100" x-transition:leave-end="opacity-0"
-                     class="mt-2">
-                  <p class="text-xs text-slate-500 mb-2">Each field is replaced with a random string matching the regex pattern on every request.</p>
-                  <table class="w-full text-xs mb-2" style="border-collapse:collapse">
-                    <thead>
-                      <tr>
-                        <th class="text-left py-1.5 px-2 bg-slate-800/70 border-b border-slate-700 text-slate-400 font-semibold uppercase tracking-wider text-[10px]" style="width:36%">Field</th>
-                        <th class="text-left py-1.5 px-2 bg-slate-800/70 border-b border-slate-700 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Regex pattern</th>
-                        <th class="py-1.5 px-2 bg-slate-800/70 border-b border-slate-700" style="width:36px"></th>
-                      </tr>
-                    </thead>
-                    <tbody id="rand-rows-<%= i %>-<%= si %>">
-                      <% Object.entries(s.randomize).forEach(function([field, pattern]) { %>
-                      <tr>
-                        <td class="py-1 px-2"><input type="text" value="<%= escAttr(field) %>" placeholder="fieldName" class="input rand-field"></td>
-                        <td class="py-1 px-2"><input type="text" value="<%= escAttr(pattern) %>" placeholder="[A-Z]{2}[0-9]{6}" class="input rand-pattern"></td>
-                        <td class="py-1 px-2 text-center"><button class="btn-secondary btn-sm !px-1.5" onclick="removeRandRow(this)">×</button></td>
-                      </tr>
-                      <% }); %>
-                    </tbody>
-                  </table>
-                  <div class="flex gap-2">
+                     class="mt-2 space-y-3">
+
+                  <!-- Body textarea -->
+                  <textarea id="body-<%= i %>-<%= si %>" rows="6" class="input"
+                    data-default-body="<%= escAttr(defaultBodyJson) %>"
+                    oninput="scheduleBodyDiff(<%= i %>, <%= si %>)"
+                  ><%= escText(currentBody) %></textarea>
+
+                  <!-- Live diff panel: changes vs spec default -->
+                  <div id="body-diff-<%= i %>-<%= si %>"></div>
+
+                  <!-- Randomize fields (merged) -->
+                  <div>
+                    <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Randomize fields</div>
+                    <p class="text-xs text-slate-500 mb-2">Each field is replaced with a random string matching the regex pattern on every request.</p>
+                    <table class="w-full text-xs mb-2" style="border-collapse:collapse">
+                      <thead>
+                        <tr>
+                          <th class="text-left py-1.5 px-2 bg-slate-800/70 border-b border-slate-700 text-slate-400 font-semibold uppercase tracking-wider text-[10px]" style="width:36%">Field</th>
+                          <th class="text-left py-1.5 px-2 bg-slate-800/70 border-b border-slate-700 text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Regex pattern</th>
+                          <th class="py-1.5 px-2 bg-slate-800/70 border-b border-slate-700" style="width:36px"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="rand-rows-<%= i %>-<%= si %>">
+                        <% Object.entries(s.randomize).forEach(function([field, pattern]) { %>
+                        <tr>
+                          <td class="py-1 px-2"><input type="text" value="<%= escAttr(field) %>" placeholder="fieldName" class="input rand-field"></td>
+                          <td class="py-1 px-2"><input type="text" value="<%= escAttr(pattern) %>" placeholder="[A-Z]{2}[0-9]{6}" class="input rand-pattern"></td>
+                          <td class="py-1 px-2 text-center"><button class="btn-secondary btn-sm !px-1.5" onclick="removeRandRow(this)">×</button></td>
+                        </tr>
+                        <% }); %>
+                      </tbody>
+                    </table>
                     <button class="btn-secondary btn-sm" onclick="addRandRow('rand-rows-<%= i %>-<%= si %>')">+ Add field</button>
-                    <button class="btn-primary btn-sm" onclick="saveRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>', '<%= i %>-<%= si %>')">Save</button>
-                    <% if (isRandOverridden) { %>
-                    <button class="btn-secondary btn-sm" onclick="resetRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>')">Reset to spec</button>
+                  </div>
+
+                  <!-- Combined save / reset -->
+                  <div class="flex gap-2">
+                    <button class="btn-primary btn-sm" onclick="saveBodyAndRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>', <%= i %>, <%= si %>)">Save</button>
+                    <% if (isBodyOverridden || isRandOverridden) { %>
+                    <button class="btn-secondary btn-sm" onclick="resetBodyAndRandomize('<%= escAttr(key) %>', '<%= s.statusStr %>')">Reset to default</button>
                     <% } %>
                   </div>
                 </div>
@@ -337,16 +329,30 @@
     setTimeout(() => location.reload(), 600);
   }
 
-  async function saveBody(key, status, i, si) {
+  async function saveBodyAndRandomize(key, status, i, si) {
     const raw = document.getElementById('body-' + i + '-' + si).value;
-    const result = await apiPost('/admin/endpoints/body', { key, status, body: raw });
-    if (result.error) { alert('JSON error: ' + result.error); return; }
-    showToast('Body saved', 'success');
+    const bodyResult = await apiPost('/admin/endpoints/body', { key, status, body: raw });
+    if (bodyResult.error) { alert('JSON error: ' + bodyResult.error); return; }
+
+    const tbody = document.getElementById('rand-rows-' + i + '-' + si);
+    const patterns = {};
+    for (const row of tbody.querySelectorAll('tr')) {
+      const field = row.querySelector('.rand-field')?.value?.trim();
+      const pattern = row.querySelector('.rand-pattern')?.value?.trim();
+      if (field && pattern) patterns[field] = pattern;
+    }
+    const randResult = await apiPost('/admin/endpoints/randomize', { key, status, patterns: JSON.stringify(patterns) });
+    if (randResult.error) { alert('Randomize error: ' + randResult.error); return; }
+
+    showToast('Saved', 'success');
     setTimeout(() => location.reload(), 800);
   }
 
-  async function resetBody(key, status) {
-    await apiPost('/admin/endpoints/body/reset', { key, status });
+  async function resetBodyAndRandomize(key, status) {
+    await Promise.all([
+      apiPost('/admin/endpoints/body/reset', { key, status }),
+      apiPost('/admin/endpoints/randomize/reset', { key, status }),
+    ]);
     showToast('Reset to default');
     setTimeout(() => location.reload(), 800);
   }
@@ -389,26 +395,6 @@
     btn.closest('tr').remove();
   }
 
-  async function saveRandomize(key, status, rowKey) {
-    const tbody = document.getElementById('rand-rows-' + rowKey);
-    const patterns = {};
-    for (const row of tbody.querySelectorAll('tr')) {
-      const field = row.querySelector('.rand-field')?.value?.trim();
-      const pattern = row.querySelector('.rand-pattern')?.value?.trim();
-      if (field && pattern) patterns[field] = pattern;
-    }
-    const result = await apiPost('/admin/endpoints/randomize', { key, status, patterns: JSON.stringify(patterns) });
-    if (result.error) { alert('Error: ' + result.error); return; }
-    showToast('Randomize config saved', 'success');
-    setTimeout(() => location.reload(), 800);
-  }
-
-  async function resetRandomize(key, status) {
-    await apiPost('/admin/endpoints/randomize/reset', { key, status });
-    showToast('Reset to spec default');
-    setTimeout(() => location.reload(), 800);
-  }
-
   async function selectExample(key, status, exampleName) {
     await apiPost('/admin/endpoints/example', { key, status, example_name: exampleName });
     showToast('Example selected', 'success');
@@ -419,5 +405,96 @@
     await apiPost('/admin/endpoints/example/reset', { key, status });
     showToast('Reset to first example');
     setTimeout(() => location.reload(), 800);
+  }
+
+  // ── Body diff helpers ─────────────────────────────────────────────────────
+
+  function _flattenObj(obj, prefix) {
+    const out = {};
+    if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+      if (prefix) out[prefix] = obj;
+      return out;
+    }
+    for (const [k, v] of Object.entries(obj)) {
+      const path = prefix ? prefix + '.' + k : k;
+      if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+        Object.assign(out, _flattenObj(v, path));
+      } else {
+        out[path] = v;
+      }
+    }
+    return out;
+  }
+
+  function _escHtml(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  const _diffTimers = {};
+
+  function scheduleBodyDiff(i, si) {
+    const k = i + '-' + si;
+    clearTimeout(_diffTimers[k]);
+    _diffTimers[k] = setTimeout(() => renderBodyDiff(i, si), 300);
+  }
+
+  function renderBodyDiff(i, si) {
+    const textarea = document.getElementById('body-' + i + '-' + si);
+    const diffEl   = document.getElementById('body-diff-' + i + '-' + si);
+    if (!textarea || !diffEl) return;
+
+    const defaultStr = textarea.dataset.defaultBody;
+    if (!defaultStr || defaultStr === 'null') { diffEl.innerHTML = ''; return; }
+
+    let cur, def;
+    try { cur = JSON.parse(textarea.value); } catch {
+      diffEl.innerHTML = '<p class="text-xs text-red-400 mt-1">Invalid JSON — fix before saving.</p>';
+      return;
+    }
+    try { def = JSON.parse(defaultStr); } catch { diffEl.innerHTML = ''; return; }
+
+    const curFlat = _flattenObj(cur, '');
+    const defFlat = _flattenObj(def, '');
+
+    const diffs = [];
+    for (const [key, defVal] of Object.entries(defFlat)) {
+      if (!(key in curFlat)) {
+        diffs.push({ type: 'removed', key, defVal });
+      } else if (JSON.stringify(curFlat[key]) !== JSON.stringify(defVal)) {
+        diffs.push({ type: 'modified', key, defVal, curVal: curFlat[key] });
+      }
+    }
+    for (const key of Object.keys(curFlat)) {
+      if (!(key in defFlat)) diffs.push({ type: 'added', key, curVal: curFlat[key] });
+    }
+
+    if (diffs.length === 0) { diffEl.innerHTML = ''; return; }
+
+    const symOf   = { added: '+', removed: '−', modified: '~' };
+    const colorOf = { added: '#4ade80', removed: '#f87171', modified: '#facc15' };
+
+    let html = `<div style="border:1px solid #334155;border-radius:8px;overflow:hidden">
+      <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;padding:5px 12px;background:#1e293b;border-bottom:1px solid #334155">Changes from spec default</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">`;
+
+    for (const d of diffs) {
+      html += `<tr style="border-bottom:1px solid rgba(51,65,85,0.4)">
+        <td style="padding:4px 10px;font-family:monospace;color:${colorOf[d.type]};width:20px;text-align:center">${symOf[d.type]}</td>
+        <td style="padding:4px 8px;font-family:monospace;color:#cbd5e1">${_escHtml(d.key)}</td>
+        <td style="padding:4px 8px;font-family:monospace;color:#64748b">`;
+
+      if (d.type === 'removed' || d.type === 'modified') {
+        html += `<span style="text-decoration:line-through;color:#94a3b8">${_escHtml(JSON.stringify(d.defVal))}</span>`;
+      }
+      if (d.type === 'modified') html += ` <span style="color:#475569">→</span> `;
+      if (d.type === 'modified' || d.type === 'added') {
+        html += `<span style="color:${colorOf[d.type]}">${_escHtml(JSON.stringify(d.curVal))}</span>`;
+      }
+
+      html += `</td></tr>`;
+    }
+
+    html += `</table></div>`;
+    diffEl.innerHTML = html;
   }
 </script>
