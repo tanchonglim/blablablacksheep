@@ -136,6 +136,28 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
     return { ok: true };
   });
 
+  // Pin which named example to serve for a specific status
+  fastify.post('/admin/endpoints/example', async (req, reply) => {
+    const { key, status, example_name } = req.body;
+    const overrides = readOverrides();
+    if (!overrides[key]) overrides[key] = {};
+    if (!overrides[key].example_overrides) overrides[key].example_overrides = {};
+    overrides[key].example_overrides[status] = example_name;
+    writeOverrides(overrides);
+    return { ok: true };
+  });
+
+  // Reset example override (revert to first named example)
+  fastify.post('/admin/endpoints/example/reset', async (req, reply) => {
+    const { key, status } = req.body;
+    const overrides = readOverrides();
+    if (overrides[key]?.example_overrides) {
+      delete overrides[key].example_overrides[status];
+    }
+    writeOverrides(overrides);
+    return { ok: true };
+  });
+
   // Save store_on_success override
   fastify.post('/admin/endpoints/store', async (req, reply) => {
     const { key, store_on_success } = req.body;

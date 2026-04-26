@@ -161,6 +161,25 @@
                 <% } %>
               </div>
 
+              <!-- Named example selector (only shown when spec defines multiple examples) -->
+              <% if (s.examples && s.examples.length > 1) { %>
+              <div class="mt-2.5 flex items-center flex-wrap gap-2">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider shrink-0">Example</span>
+                <% s.examples.forEach(function(ex) { %>
+                <button type="button"
+                  onclick="selectExample('<%= escAttr(key) %>', '<%= s.statusStr %>', '<%= escAttr(ex.name) %>')"
+                  class="badge <%= s.selectedExample === ex.name ? 'bg-blue-700 text-blue-100 border-blue-600' : 'badge-default hover:bg-slate-700' %> cursor-pointer transition-colors">
+                  <%= escText(ex.summary || ex.name) %>
+                </button>
+                <% }); %>
+                <% if (s.hasExampleOverride) { %>
+                <button type="button"
+                  onclick="resetExample('<%= escAttr(key) %>', '<%= s.statusStr %>')"
+                  class="badge badge-error cursor-pointer">Reset</button>
+                <% } %>
+              </div>
+              <% } %>
+
               <!-- Edit response body -->
               <div x-data="{ open: false }" class="mt-2.5">
                 <button @click="open=!open" type="button" class="collapse-trigger">
@@ -387,6 +406,18 @@
   async function resetRandomize(key, status) {
     await apiPost('/admin/endpoints/randomize/reset', { key, status });
     showToast('Reset to spec default');
+    setTimeout(() => location.reload(), 800);
+  }
+
+  async function selectExample(key, status, exampleName) {
+    await apiPost('/admin/endpoints/example', { key, status, example_name: exampleName });
+    showToast('Example selected', 'success');
+    setTimeout(() => location.reload(), 800);
+  }
+
+  async function resetExample(key, status) {
+    await apiPost('/admin/endpoints/example/reset', { key, status });
+    showToast('Reset to first example');
     setTimeout(() => location.reload(), 800);
   }
 </script>

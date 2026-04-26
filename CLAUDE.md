@@ -28,7 +28,8 @@ src/
     routes.js               # Admin REST API + page routes
     views/                  # EJS templates (layout, endpoints, requests, jobs, files)
 config/
-  openapi.yaml              # API definitions — source of truth for endpoints and default responses
+  openapi/                  # One or more .yaml/.yml spec files (merged at startup)
+    openapi.yaml            # Default spec — source of truth for endpoints and default responses
   overrides.json            # Runtime overrides written by the admin UI (hot-reloaded)
 scripts/                    # User-written batch job scripts (JS)
 output/                     # Generated files from batch jobs
@@ -37,7 +38,7 @@ data/requests.db            # SQLite database
 
 ## How the mock API works
 
-1. `config/openapi.yaml` is parsed at startup with `@readme/openapi-parser`. If invalid, the server refuses to start.
+1. All `.yaml`/`.yml` files in `config/openapi/` are parsed and merged at startup with `@readme/openapi-parser`. If any file is invalid, the server refuses to start.
 2. Every HTTP path/method in the spec gets a Fastify route registered automatically.
 3. On each request, `config/overrides.json` is read from disk (hot-reload — no restart needed).
 4. The **behavior engine** resolves the response:
@@ -68,11 +69,26 @@ Standard OpenAPI 3.0.3 plus an `x-mock` extension block per operation:
       "200":
         content:
           application/json:
+            # Singular example (one body per status code)
             example:
               orderId: "{{uuid}}"          # token — substituted per request
               status: "accepted"
               shipping:
                 trackingId: "000000000000"
+            # — OR — named examples (multiple bodies per status code; selectable in admin UI)
+            examples:
+              standard:
+                summary: Standard delivery
+                value:
+                  orderId: "{{uuid}}"
+                  status: "accepted"
+                  delivery: standard
+              express:
+                summary: Express delivery
+                value:
+                  orderId: "{{uuid}}"
+                  status: "accepted"
+                  delivery: express
       "400":
         content:
           application/json:
@@ -81,6 +97,8 @@ Standard OpenAPI 3.0.3 plus an `x-mock` extension block per operation:
 ```
 
 The **first response code** in the spec is the default. Order matters.
+
+When using **named examples**, the first example is served by default. Select a different example in the admin UI (Endpoints page) — the selection is saved to `overrides.json`.
 
 ## overrides.json format
 
@@ -98,12 +116,17 @@ Written and read by the admin UI. Do not edit manually while the server is runni
     },
     "randomize_overrides": {
       "200": { "orderId": "[A-Z]{3}[0-9]{5}" }
+    },
+    "example_overrides": {
+      "200": "express"
     }
   }
 }
 ```
 
 Override precedence (higher wins): `randomize_overrides` > `x-mock.responses[status].randomize`. Same for body and delay.
+
+`example_overrides` pins which named example is served for a status code. Ignored when `body_overrides` is set for the same status (manual edit wins).
 
 ## Database schema
 
