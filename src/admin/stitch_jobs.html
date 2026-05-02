@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Console - Cron Jobs Manager</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#c6c6c6",
+                        "primary": "#0f62fe",
+                        "on-tertiary-fixed-variant": "#044317",
+                        "on-tertiary-container": "#044317",
+                        "outline": "#8d8d8d",
+                        "tertiary": "#198038",
+                        "primary-fixed-dim": "#78a9ff",
+                        "surface-dim": "#e0e0e0",
+                        "inverse-primary": "#78a9ff",
+                        "surface-container-highest": "#c6c6c6",
+                        "on-tertiary-fixed": "#022d0d",
+                        "surface-container-low": "#f4f4f4",
+                        "on-primary-container": "#161616",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#0043ce",
+                        "inverse-on-surface": "#f4f4f4",
+                        "error": "#da1e28",
+                        "tertiary-fixed": "#a7f0ba",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed": "#e0e0e0",
+                        "on-secondary-fixed": "#161616",
+                        "background": "#ffffff",
+                        "on-secondary-container": "#525252",
+                        "surface-bright": "#ffffff",
+                        "tertiary-fixed-dim": "#42be65",
+                        "on-primary-fixed": "#001d6c",
+                        "inverse-surface": "#393939",
+                        "error-container": "#fff1f1",
+                        "outline-variant": "#e0e0e0",
+                        "secondary": "#6f6f6f",
+                        "on-secondary-fixed-variant": "#525252",
+                        "on-error-container": "#750e13",
+                        "surface-container-high": "#e0e0e0",
+                        "on-background": "#161616",
+                        "surface-container": "#f4f4f4",
+                        "tertiary-container": "#a7f0ba",
+                        "primary-fixed": "#d0e2ff",
+                        "secondary-container": "#e0e0e0",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#161616",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#0f62fe",
+                        "primary-container": "#d0e2ff",
+                        "surface-variant": "#f4f4f4",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#525252",
+                        "surface": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["IBM Plex Sans"],
+                        "display": ["IBM Plex Sans"],
+                        "body": ["IBM Plex Sans"],
+                        "label": ["IBM Plex Sans"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'IBM Plex Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e0e0e0; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8d8d8d; }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased overflow-hidden h-screen flex flex-col">
+<!-- TopNavBar from Shared Components JSON -->
+<header class="bg-white dark:bg-stone-950 border-b border-stone-200 dark:border-stone-800 flex items-center h-12 w-full px-4 justify-between font-['IBM_Plex_Sans'] text-sm tracking-tight fixed top-0 z-50">
+<div class="flex items-center h-full">
+<span class="text-lg font-semibold tracking-tighter text-stone-900 dark:text-white mr-8">Console</span>
+<nav class="flex h-full items-center">
+<a class="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 px-4 h-full flex items-center hover:bg-stone-100 dark:hover:bg-stone-900 transition-colors duration-75" href="#">Endpoints</a>
+<a class="text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 h-full flex items-center px-4 hover:bg-stone-100 dark:hover:bg-stone-900 transition-colors duration-75" href="#">Cron Jobs</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 px-4 h-full flex items-center hover:bg-stone-100 dark:hover:bg-stone-900 transition-colors duration-75" href="#">Logs</a>
+</nav>
+</div>
+<div class="flex items-center space-x-2">
+<div class="relative flex items-center">
+<input class="h-8 bg-surface-container border-none focus:ring-1 focus:ring-primary text-xs w-48 px-3 rounded-none" placeholder="Search" type="text"/>
+</div>
+<button class="p-2 hover:bg-stone-100 dark:hover:bg-stone-900 active:bg-stone-200 dark:active:bg-stone-800 transition-colors">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+<button class="p-2 hover:bg-stone-100 dark:hover:bg-stone-900 active:bg-stone-200 dark:active:bg-stone-800 transition-colors">
+<span class="material-symbols-outlined text-[20px]">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="mt-12 flex-1 flex overflow-hidden">
+<!-- Left Panel: Job List (Data Density focus) -->
+<section class="w-1/3 flex flex-col border-r border-outline-variant bg-surface overflow-hidden">
+<div class="p-4 border-b border-outline-variant flex justify-between items-center bg-white">
+<h2 class="text-sm font-semibold uppercase tracking-wider text-on-surface-variant">Active Schedules</h2>
+<button class="bg-primary text-on-primary px-3 py-1.5 text-xs flex items-center space-x-2 hover:bg-blue-700 transition-all">
+<span class="material-symbols-outlined text-[16px]">add</span>
+<span>Create Job</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar">
+<!-- Job Item Active -->
+<div class="p-4 border-b border-outline-variant bg-surface-container-low border-l-4 border-l-primary cursor-pointer">
+<div class="flex justify-between items-start mb-1">
+<span class="text-sm font-semibold text-on-surface">Daily-DB-Backup</span>
+<span class="text-[10px] px-2 py-0.5 bg-tertiary-container text-on-tertiary-container font-medium uppercase">Active</span>
+</div>
+<div class="flex items-center text-xs text-on-surface-variant space-x-3">
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">schedule</span> 00:00 UTC</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">history</span> 4h ago</span>
+</div>
+<p class="text-[11px] text-outline mt-2 truncate">Automated SQL dump and S3 upload for production cluster...</p>
+</div>
+<!-- Job Item 2 -->
+<div class="p-4 border-b border-outline-variant hover:bg-surface-variant cursor-pointer transition-colors group">
+<div class="flex justify-between items-start mb-1">
+<span class="text-sm font-semibold text-on-surface">Weekly-Audit-Report</span>
+<span class="text-[10px] px-2 py-0.5 bg-surface-container-highest text-on-surface-variant font-medium uppercase">Idle</span>
+</div>
+<div class="flex items-center text-xs text-on-surface-variant space-x-3">
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">schedule</span> Mon 08:00</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">history</span> 6d ago</span>
+</div>
+<p class="text-[11px] text-outline mt-2 truncate">Aggregate system access logs into compliance PDF...</p>
+</div>
+<!-- Job Item 3 -->
+<div class="p-4 border-b border-outline-variant hover:bg-surface-variant cursor-pointer transition-colors group">
+<div class="flex justify-between items-start mb-1">
+<span class="text-sm font-semibold text-on-surface">Cache-Prune-Service</span>
+<span class="text-[10px] px-2 py-0.5 bg-error-container text-on-error-container font-medium uppercase">Failed</span>
+</div>
+<div class="flex items-center text-xs text-on-surface-variant space-x-3">
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">schedule</span> Every 1h</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 text-error">error</span> 15m ago</span>
+</div>
+<p class="text-[11px] text-outline mt-2 truncate">Flush expired Redis keys and orphan temporary files...</p>
+</div>
+<!-- Repeating Items for Density -->
+<div class="p-4 border-b border-outline-variant hover:bg-surface-variant cursor-pointer transition-colors group">
+<div class="flex justify-between items-start mb-1">
+<span class="text-sm font-semibold text-on-surface">Metric-Aggregator-v2</span>
+<span class="text-[10px] px-2 py-0.5 bg-tertiary-container text-on-tertiary-container font-medium uppercase">Active</span>
+</div>
+<div class="flex items-center text-xs text-on-surface-variant space-x-3">
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">schedule</span> */15 * * * *</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">history</span> 2m ago</span>
+</div>
+</div>
+<div class="p-4 border-b border-outline-variant hover:bg-surface-variant cursor-pointer transition-colors group">
+<div class="flex justify-between items-start mb-1">
+<span class="text-sm font-semibold text-on-surface">Image-Optimizer-Process</span>
+<span class="text-[10px] px-2 py-0.5 bg-tertiary-container text-on-tertiary-container font-medium uppercase">Active</span>
+</div>
+<div class="flex items-center text-xs text-on-surface-variant space-x-3">
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">schedule</span> 04:00 UTC</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">history</span> 20h ago</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Panel: Job Details (Vertical Split) -->
+<section class="flex-1 flex flex-col bg-surface-container-lowest">
+<!-- Top Section: Generated Files (Bento Grid Style) -->
+<div class="h-1/2 flex flex-col overflow-hidden border-b border-outline-variant">
+<div class="p-4 flex items-center justify-between bg-white border-b border-outline-variant">
+<div class="flex items-center space-x-4">
+<h3 class="text-sm font-semibold flex items-center">
+<span class="material-symbols-outlined text-[18px] mr-2 text-primary">folder_open</span>
+                            Generated Files
+                        </h3>
+<span class="text-[10px] text-outline font-mono">/mnt/storage/backups/daily/</span>
+</div>
+<button class="text-xs text-primary font-semibold hover:underline">Download All</button>
+</div>
+<div class="flex-1 p-4 flex flex-col space-y-2 overflow-y-auto custom-scrollbar bg-surface-container-low"><!-- File Card 1 -->
+<div class="bg-white p-4 border border-outline-variant flex justify-between items-center hover:shadow-md transition-shadow group">
+<div class="flex-1 min-w-0 mr-4">
+<h4 class="text-xs font-bold text-on-surface truncate" title="db_prod_2023_10_27.sql.gz">db_prod_2023_10_27.sql.gz</h4>
+<p class="text-[10px] text-outline mt-0.5">1.2 GB • 00:05 UTC</p>
+</div>
+<div class="flex items-center space-x-1 flex-shrink-0">
+<button class="p-1.5 hover:bg-surface-variant transition-colors" title="Download">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</button>
+<button class="p-1.5 hover:bg-surface-variant transition-colors" title="Delete">
+<span class="material-symbols-outlined text-[18px] text-error">delete</span>
+</button>
+</div>
+</div>
+<!-- File Card 2 -->
+<div class="bg-white p-4 border border-outline-variant flex justify-between items-center hover:shadow-md transition-shadow group">
+<div class="flex-1 min-w-0 mr-4">
+<h4 class="text-xs font-bold text-on-surface truncate" title="backup_report_oct_27.log">backup_report_oct_27.log</h4>
+<p class="text-[10px] text-outline mt-0.5">45 KB • 00:06 UTC</p>
+</div>
+<div class="flex items-center space-x-1 flex-shrink-0">
+<button class="p-1.5 hover:bg-surface-variant transition-colors" title="Download">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</button>
+<button class="p-1.5 hover:bg-surface-variant transition-colors" title="Delete">
+<span class="material-symbols-outlined text-[18px] text-error">delete</span>
+</button>
+</div>
+</div>
+<!-- File Card 3 -->
+<div class="bg-white p-4 border border-outline-variant flex justify-between items-center hover:shadow-md transition-shadow group">
+<div class="flex-1 min-w-0 mr-4">
+<h4 class="text-xs font-bold text-on-surface truncate" title="stats_integrity_check.csv">stats_integrity_check.csv</h4>
+<p class="text-[10px] text-outline mt-0.5">2.4 MB • 00:04 UTC</p>
+</div>
+<div class="flex items-center space-x-1 flex-shrink-0">
+<button class="p-1.5 hover:bg-surface-variant transition-colors" title="Download">
+<span class="material-symbols-outlined text-[18px]">download</span>
+</button>
+<button class="p-1.5 hover:bg-surface-variant transition-colors" title="Delete">
+<span class="material-symbols-outlined text-[18px] text-error">delete</span>
+</button>
+</div>
+</div></div>
+</div>
+<!-- Bottom Section: Real-time Job Logs (Monospace Terminal style) -->
+<div class="h-1/2 flex flex-col overflow-hidden">
+<div class="p-4 flex items-center justify-between bg-white border-b border-outline-variant">
+<h3 class="text-sm font-semibold flex items-center">
+<span class="material-symbols-outlined text-[18px] mr-2 text-secondary">terminal</span>
+                        Real-time Job Logs
+                    </h3>
+<div class="flex items-center space-x-2">
+<div class="flex items-center space-x-2 mr-4">
+<div class="w-2 h-2 bg-tertiary rounded-full animate-pulse"></div>
+<span class="text-[10px] font-bold text-tertiary uppercase tracking-tighter">Live Streaming</span>
+</div>
+<button class="p-1.5 hover:bg-surface-variant border border-outline-variant rounded-none"><span class="material-symbols-outlined text-[16px]">search</span></button>
+<button class="p-1.5 hover:bg-surface-variant border border-outline-variant rounded-none"><span class="material-symbols-outlined text-[16px]">filter_list</span></button>
+<button class="p-1.5 hover:bg-surface-variant border border-outline-variant rounded-none"><span class="material-symbols-outlined text-[16px]">content_copy</span></button>
+</div>
+</div>
+<div class="flex-1 bg-on-background p-4 font-mono text-[11px] text-white/80 overflow-y-auto custom-scrollbar leading-relaxed">
+<div class="flex py-1 hover:bg-white/5 group">
+<span class="text-white/40 w-24 flex-shrink-0">2023-10-27 00:00:01</span>
+<span class="text-tertiary-fixed w-16 flex-shrink-0 font-bold">[INFO]</span>
+<span>Initializing cron trigger: Daily-DB-Backup</span>
+</div>
+<div class="flex py-1 hover:bg-white/5 group">
+<span class="text-white/40 w-24 flex-shrink-0">2023-10-27 00:00:02</span>
+<span class="text-tertiary-fixed w-16 flex-shrink-0 font-bold">[INFO]</span>
+<span>Establishing connection to production cluster 'us-east-1-prod-a'</span>
+</div>
+<div class="flex py-1 hover:bg-white/5 group">
+<span class="text-white/40 w-24 flex-shrink-0">2023-10-27 00:00:05</span>
+<span class="text-tertiary-fixed w-16 flex-shrink-0 font-bold">[INFO]</span>
+<span>Streaming pg_dump output to compression buffer...</span>
+</div>
+<div class="flex py-1 hover:bg-white/5 group">
+<span class="text-white/40 w-24 flex-shrink-0">2023-10-27 00:00:15</span>
+<span class="text-blue-400 w-16 flex-shrink-0 font-bold">[DEBUG]</span>
+<span>Buffer utilization: 42%. Throughput: 125MB/s</span>
+</div>
+<div class="flex py-1 hover:bg-white/5 group">
+<span class="text-white/40 w-24 flex-shrink-0">2023-10-27 00:04:12</span>
+<span class="text-tertiary-fixed w-16 flex-shrink-0 font-bold">[INFO]</span>
+<span>Compression complete. Final file: db_prod_2023_10_27.sql.gz</span>
+</div>
+<div class="flex py-1 hover:bg-white/5 group">
+<span class="text-white/40 w-24 flex-shrink-0">2023-10-27 00:04:13</span>
+<span class="text-tertiary-fixed w-16 flex-shrink-0 font-bold">[INFO]</span>
+<span>Initiating S3 multi-part upload to bucket 'archive-prod-backup'</span>
+</div>
+<div class="flex py-1 hover:bg-white/5 group">
+<span class="text-white/40 w-24 flex-shrink-0">2023-10-27 00:05:45</span>
+<span class="text-tertiary-fixed w-16 flex-shrink-0 font-bold">[INFO]</span>
+<span>Upload successful. S3 ETag: 4d2e1a3c5b6f7e8a90123</span>
+</div>
+<div class="flex py-1 hover:bg-white/5 group">
+<span class="text-white/40 w-24 flex-shrink-0">2023-10-27 00:05:46</span>
+<span class="text-tertiary-fixed w-16 flex-shrink-0 font-bold">[INFO]</span>
+<span>Cleaning up temporary buffer...</span>
+</div>
+<div class="flex py-1 hover:bg-white/5 group">
+<span class="text-white/40 w-24 flex-shrink-0">2023-10-27 00:06:01</span>
+<span class="text-tertiary w-16 flex-shrink-0 font-bold">[SUCCESS]</span>
+<span>Job completed in 360.2 seconds. Status code: 0</span>
+</div>
+<!-- Empty lines for scroll effect -->
+<div class="h-20"></div>
+</div>
+</div>
+</section>
+</main>
+<!-- Contextual Action (Not a FAB per instructions, but a subtle footer status if needed) -->
+<footer class="h-6 bg-surface-container-high border-t border-outline-variant flex items-center px-4 justify-between">
+<div class="flex items-center space-x-4">
+<span class="text-[10px] text-secondary font-medium uppercase">Cluster: Production-01</span>
+<span class="text-[10px] text-secondary font-medium uppercase">Node Status: <span class="text-tertiary">Healthy</span></span>
+</div>
+<div class="text-[10px] text-secondary font-mono">v4.12.0-stable</div>
+</footer>
+</body></html>

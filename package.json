@@ -6,8 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "build": "tailwindcss -i src/styles/input.css -o public/tailwind.css --minify && cp node_modules/alpinejs/dist/cdn.min.js public/alpine.min.js",
-    "build:watch": "tailwindcss -i src/styles/input.css -o public/tailwind.css --watch",
+    "build": "cd src/admin/frontend && npm install && npm run build",
+    "build:watch": "cd src/admin/frontend && npm run dev",
     "postinstall": "npm run build"
   },
   "dependencies": {

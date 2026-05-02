@@ -31,6 +31,7 @@ function migrate(db) {
       response_status INTEGER,
       response_body TEXT,
       scenario_type TEXT,
+      latency_ms INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -46,6 +47,11 @@ function migrate(db) {
       finished_at DATETIME
     );
   `);
+
+  const requestCols = db.prepare('PRAGMA table_info(requests)').all();
+  if (!requestCols.some(c => c.name === 'latency_ms')) {
+    db.exec('ALTER TABLE requests ADD COLUMN latency_ms INTEGER');
+  }
 }
 
 module.exports = { getDb };

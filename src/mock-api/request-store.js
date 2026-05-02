@@ -2,11 +2,11 @@
 
 const { getDb } = require('../db');
 
-function storeRequest({ endpoint, method, path, requestHeaders, requestBody, responseStatus, responseBody, scenarioType }) {
+function storeRequest({ endpoint, method, path, requestHeaders, requestBody, responseStatus, responseBody, scenarioType, latencyMs }) {
   const db = getDb();
   const stmt = db.prepare(`
-    INSERT INTO requests (endpoint, method, path, request_headers, request_body, response_status, response_body, scenario_type)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO requests (endpoint, method, path, request_headers, request_body, response_status, response_body, scenario_type, latency_ms)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   stmt.run(
     endpoint,
@@ -16,7 +16,8 @@ function storeRequest({ endpoint, method, path, requestHeaders, requestBody, res
     typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody || null),
     responseStatus,
     typeof responseBody === 'string' ? responseBody : JSON.stringify(responseBody || null),
-    scenarioType
+    scenarioType,
+    latencyMs == null ? null : Math.max(0, Math.round(latencyMs))
   );
 }
 

@@ -5,11 +5,10 @@ A self-contained Node.js mock enterprise API server with an admin UI, request hi
 ## Features
 
 - **Dynamic API mocking** — define endpoints in an OpenAPI 3.0 spec; routes are registered automatically at startup
-- **Runtime overrides** — switch active response codes, edit response bodies, configure delays, and set regex randomization without restarting
-- **Request history** — successful requests are stored in SQLite and browsable in the admin UI
+- **Runtime overrides** — switch active response codes, edit response bodies, configure delays, and tune dynamic response fields without restarting
+- **Request history** — when `store_on_success` is enabled, requests are stored in SQLite (any status) and browsable in the admin UI
 - **Batch jobs** — drop a `.js` script in `scripts/` and run it manually or on a cron schedule
-- **Token substitution** — use `{{uuid}}`, `{{timestamp}}`, `{{date}}`, `{{random_int}}` in response bodies, or echo back request values with `{{request.body.field}}`, `{{request.params.id}}`, `{{request.query.x}}`, `{{request.headers.x-api-key}}`
-- **Regex randomization** — generate random field values matching a regex pattern on every request
+- **Token substitution & regex randomization** — inline `{{regex('pattern')}}` (or double quotes around the pattern when valid), then named tokens (`{{uuid}}`, times, request echoes), then field-level patterns (`x-mock.responses[status].randomize` / `randomize_overrides`) for keys listed there
 
 ## Quick Start
 
@@ -26,7 +25,7 @@ Server starts on `http://localhost:3000`. Admin UI at `http://localhost:3000/adm
 
 | Page | URL | What you can do |
 |---|---|---|
-| Endpoints | `/admin/endpoints` | Switch active response code, edit response body, configure regex randomization, adjust delay |
+| Endpoints | `/admin/endpoints` | Switch active response code, edit response body, adjust delay (tokens + regex are configured in the spec / overrides) |
 | Requests | `/admin/requests` | Browse stored requests, filter by endpoint or status, clear all |
 | Jobs | `/admin/jobs` | See all scripts and their cron schedule, trigger manually, view logs |
 | Output Files | `/admin/files` | List and download generated files |
@@ -40,7 +39,7 @@ src/
   mock-api/
     router.js               # Registers dynamic Fastify routes from OpenAPI spec
     behavior-engine.js      # Scenario selection, token substitution, regex randomization
-    request-store.js        # Persists successful requests to DB
+    request-store.js        # Persists logged mock requests to DB (when enabled per operation)
   scheduler/
     job-manager.js          # Loads scripts/, wires up node-cron
     runner.js               # Executes a script, injects query/writeFile helpers
@@ -76,7 +75,8 @@ Edit `config/openapi.yaml` to add or modify endpoints. The server must be restar
         content:
           application/json:
             example:
-              orderId: "{{uuid}}"          # token — substituted per request
+              orderId: "{{uuid}}"          # token — fixed-purpose placeholder
+              # or: orderId: "{{regex('[A-Z]{2}[0-9]{6}')}}"  # inline regex (single quotes inside JSON string)
               status: "accepted"
       "503":
         content:
@@ -87,7 +87,24 @@ Edit `config/openapi.yaml` to add or modify endpoints. The server must be restar
 
 The **first response code** in the spec is the default. Order matters.
 
-### Available tokens
+### Token substitution & regex randomization
+
+On each request the mock updates string values in the response body in this order:
+
+1. **`{{regex('pattern')}}`** inside that string — generates random text matching the regex. **Use single quotes around the pattern** whenever this value lives inside JSON (including the admin payload editor): `"field": "{{regex('[0-9]{4}')}}"` stays valid JSON; `"field": "{{regex("[0-9]{4}")}}"` does not. You can use `{{regex("pattern")}}` in YAML or other contexts where inner double quotes do not break parsing. Processed first so braces inside the pattern are not treated as tokens; escape with `\'` / `\"` inside the pattern only when you need quote characters there.
+2. **Named tokens** — see table below (`{{uuid}}`, `{{request.*}}`, …).
+3. **Field map** — each key under `x-mock.responses[status].randomize` (merged with `randomize_overrides`) replaces that field’s value again (top-level or dot paths for nested fields). **If a field name appears here, this step wins** over whatever was produced in steps 1–2 for that field.
+
+**When to use tokens vs inline regex vs the field map**
+
+| Need | Use |
+|---|---|
+| A UUID, clock time, date, or simple random integer | `{{uuid}}`, `{{timestamp}}`, `{{date}}`, `{{random_int}}` — clearer than hand-written regex |
+| Echo part of the incoming request | `{{request.body.*}}`, `params`, `query`, `headers` |
+| Random text matching a **custom** pattern in **one** string, possibly mixed with static text (e.g. `REF-{{regex('[0-9]{8}')}}`) | `{{regex('…')}}` in that string (JSON-safe) |
+| Same pattern for a nested path (`shipping.trackingId`) or keep examples **free of** inline placeholder noise | `randomize` / `randomize_overrides` map |
+
+**Tokens** (after inline `{{regex(...)}}` runs):
 
 | Token | Output |
 |---|---|
@@ -99,6 +116,8 @@ The **first response code** in the spec is the default. Order matters.
 | `{{request.params.name}}` | URL path parameter (e.g. `{orderId}` → `{{request.params.orderId}}`) |
 | `{{request.query.name}}` | Query string parameter |
 | `{{request.headers.name}}` | Request header (lowercase name, e.g. `{{request.headers.x-api-key}}`) |
+
+See **Configuring the Mock API** above for a `randomize:` map example next to the `200` response.
 
 **Example** — echo back fields from the request body:
 
@@ -134,7 +153,7 @@ The **first response code** in the spec is the default. Order matters.
 
 Use the admin UI to change active behavior without restarting. Changes are written to `config/overrides.json` and take effect immediately.
 
-Override precedence (higher wins): `randomize_overrides` > `x-mock.responses[status].randomize`.
+Override precedence (higher wins): `randomize_overrides` > `x-mock.responses[status].randomize`. Both apply **after** inline `{{regex(...)}}` and named tokens for each field they list.
 
 ## Writing Batch Scripts
 

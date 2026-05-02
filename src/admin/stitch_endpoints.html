@@ -1,0 +1,340 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Console - Endpoint Manager</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-low": "#f4f4f4",
+                    "surface": "#ffffff",
+                    "on-secondary-fixed": "#161616",
+                    "on-background": "#161616",
+                    "tertiary-container": "#a7f0ba",
+                    "on-primary-fixed": "#001d6c",
+                    "background": "#ffffff",
+                    "outline-variant": "#e0e0e0",
+                    "outline": "#8d8d8d",
+                    "on-primary-container": "#161616",
+                    "inverse-primary": "#78a9ff",
+                    "surface-dim": "#e0e0e0",
+                    "inverse-surface": "#393939",
+                    "secondary-fixed": "#e0e0e0",
+                    "tertiary-fixed-dim": "#42be65",
+                    "primary-fixed-dim": "#78a9ff",
+                    "on-surface": "#161616",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "on-error-container": "#750e13",
+                    "secondary": "#6f6f6f",
+                    "primary": "#0f62fe",
+                    "on-primary": "#ffffff",
+                    "error": "#da1e28",
+                    "surface-tint": "#0f62fe",
+                    "surface-container-high": "#e0e0e0",
+                    "primary-container": "#d0e2ff",
+                    "on-error": "#ffffff",
+                    "tertiary-fixed": "#a7f0ba",
+                    "surface-container-highest": "#c6c6c6",
+                    "on-surface-variant": "#525252",
+                    "on-secondary-fixed-variant": "#525252",
+                    "secondary-fixed-dim": "#c6c6c6",
+                    "secondary-container": "#e0e0e0",
+                    "on-tertiary-container": "#044317",
+                    "on-tertiary-fixed-variant": "#044317",
+                    "surface-variant": "#f4f4f4",
+                    "inverse-on-surface": "#f4f4f4",
+                    "on-secondary-container": "#525252",
+                    "error-container": "#fff1f1",
+                    "tertiary": "#198038",
+                    "surface-bright": "#ffffff",
+                    "on-primary-fixed-variant": "#0043ce",
+                    "on-tertiary-fixed": "#022d0d",
+                    "surface-container-lowest": "#ffffff",
+                    "primary-fixed": "#d0e2ff",
+                    "surface-container": "#f4f4f4"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["IBM Plex Sans"],
+                    "display": ["IBM Plex Sans"],
+                    "body": ["IBM Plex Sans"],
+                    "label": ["IBM Plex Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'IBM Plex Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e0e0e0; }
+        .mono { font-family: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-white dark:bg-stone-950 border-b border-stone-200 dark:border-stone-800 flex items-center h-12 w-full px-4 justify-between sticky top-0 z-50">
+<div class="flex items-center gap-8 h-full">
+<span class="text-lg font-semibold tracking-tighter text-stone-900 dark:text-white">Console</span>
+<nav class="flex h-full items-center font-['IBM_Plex_Sans'] text-sm tracking-tight">
+<a class="text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 h-full flex items-center px-4 transition-colors duration-75" href="#">Endpoints</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 px-4 h-full flex items-center hover:bg-stone-100 dark:hover:bg-stone-900 transition-colors duration-75" href="#">Cron Jobs</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 px-4 h-full flex items-center hover:bg-stone-100 dark:hover:bg-stone-900 transition-colors duration-75" href="#">Logs</a>
+</nav>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-900 transition-colors duration-75 flex items-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+</button>
+<button class="p-2 text-stone-600 hover:bg-stone-100 dark:hover:bg-stone-900 transition-colors duration-75 flex items-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area: Split View -->
+<main class="flex-1 flex overflow-hidden">
+<!-- Left Pane: Endpoint Browser -->
+<aside class="w-80 border-r border-outline-variant bg-surface flex flex-col">
+<div class="p-4 border-b border-outline-variant">
+<div class="relative">
+<input class="w-full h-10 pl-10 pr-4 bg-surface-container border-b border-outline focus:border-primary focus:ring-0 text-sm transition-all" placeholder="Search endpoints..." type="text">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-secondary text-[20px]" data-icon="search">search</span>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar">
+<!-- Group: Users -->
+<section>
+<div class="px-4 py-2 bg-surface-container-low flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="keyboard_arrow_down">keyboard_arrow_down</span>
+<span class="text-xs font-semibold uppercase tracking-wider text-secondary">Users</span>
+</div>
+<span class="text-[10px] text-secondary-fixed-dim bg-secondary/10 px-1.5 py-0.5">3</span>
+</div>
+<div class="divide-y divide-outline-variant/50">
+<button class="w-full text-left px-8 py-3 bg-primary/5 border-l-4 border-primary hover:bg-primary/10 transition-colors">
+<div class="text-sm font-medium text-primary">Get User Profile</div>
+<div class="text-[11px] mono text-secondary">GET /v1/users/:id</div>
+</button>
+<button class="w-full text-left px-8 py-3 hover:bg-surface-container-low transition-colors">
+<div class="text-sm font-medium text-on-surface">Update Settings</div>
+<div class="text-[11px] mono text-secondary">PATCH /v1/users/settings</div>
+</button>
+<button class="w-full text-left px-8 py-3 hover:bg-surface-container-low transition-colors">
+<div class="text-sm font-medium text-on-surface">Delete Account</div>
+<div class="text-[11px] mono text-secondary">DELETE /v1/users/:id</div>
+</button>
+</div>
+</section>
+<!-- Group: Auth -->
+<section>
+<div class="px-4 py-2 bg-surface-container-low flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="keyboard_arrow_right">keyboard_arrow_right</span>
+<span class="text-xs font-semibold uppercase tracking-wider text-secondary">Auth</span>
+</div>
+<span class="text-[10px] text-secondary-fixed-dim bg-secondary/10 px-1.5 py-0.5">2</span>
+</div>
+</section>
+<!-- Group: Media -->
+<section>
+<div class="px-4 py-2 bg-surface-container-low flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="keyboard_arrow_right">keyboard_arrow_right</span>
+<span class="text-xs font-semibold uppercase tracking-wider text-secondary">Media</span>
+</div>
+<span class="text-[10px] text-secondary-fixed-dim bg-secondary/10 px-1.5 py-0.5">5</span>
+</div>
+</section>
+</div>
+<div class="p-4 border-t border-outline-variant bg-surface-container-lowest">
+<button class="w-full py-3 bg-primary text-on-primary text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary-fixed-dim transition-all">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+                    New Endpoint
+                </button>
+</div>
+</aside>
+<!-- Right Pane: Workspace -->
+<section class="flex-1 flex flex-col bg-surface-container-lowest overflow-hidden">
+<!-- Workspace Header -->
+<div class="h-14 border-b border-outline-variant px-6 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<span class="px-2 py-0.5 bg-tertiary-container text-on-tertiary-container text-[11px] font-bold tracking-wider rounded-sm uppercase">Active</span>
+<h1 class="text-lg font-semibold text-on-surface">Get User Profile</h1>
+<span class="text-sm text-secondary mono">/v1/users/:id</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 h-9 border border-outline text-on-surface text-sm font-medium hover:bg-surface-container transition-colors">Discard</button>
+<button class="px-4 h-9 bg-primary text-on-primary text-sm font-medium hover:bg-primary-fixed-dim transition-colors">Save Changes</button>
+</div>
+</div>
+<!-- Workspace Body -->
+<div class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+<!-- Top Configuration Row -->
+<div class="grid grid-cols-1 gap-8">
+<!-- Caching Strategy -->
+<!-- Sample Response -->
+<div>
+<label class="block text-xs font-semibold text-secondary uppercase tracking-widest mb-3">Sample Response</label>
+<div class="p-0"><div class="space-y-6">
+<div class="flex flex-wrap gap-8">
+<!-- 200 Group -->
+<div class="flex flex-col gap-2">
+<span class="text-[10px] font-bold text-tertiary uppercase tracking-tighter">200 OK</span>
+<div class="flex gap-2">
+<button class="px-4 py-2 text-sm font-medium bg-primary text-on-primary transition-colors flex items-center justify-center"><div class="flex items-center gap-2"><span class="">Successful Login</span><span class="bg-white/20 text-[9px] px-1.5 py-0.5 rounded-sm font-bold tracking-tighter">ACTIVE</span></div></button>
+</div>
+</div>
+<!-- 400 Group -->
+<div class="flex flex-col gap-2">
+<span class="text-[10px] font-bold text-secondary uppercase tracking-tighter">400 Bad Request</span>
+<div class="flex gap-2">
+<button class="px-4 py-2 text-sm font-medium bg-surface border border-outline text-on-surface hover:bg-surface-container transition-colors">Invalid Credentials</button>
+</div>
+</div>
+<!-- 401 Group -->
+<div class="flex flex-col gap-2">
+<span class="text-[10px] font-bold text-secondary uppercase tracking-tighter">401 Unauthorized</span>
+<div class="flex gap-2">
+<button class="px-4 py-2 text-sm font-medium bg-surface border border-outline text-on-surface hover:bg-surface-container transition-colors">Expired Token</button>
+<button class="px-4 py-2 text-sm font-medium bg-surface border border-outline text-on-surface hover:bg-surface-container transition-colors">Account Locked</button>
+</div>
+</div>
+<!-- 500 Group -->
+<div class="flex flex-col gap-2">
+<span class="text-[10px] font-bold text-error uppercase tracking-tighter">500 Server Error</span>
+<div class="flex gap-2">
+<button class="px-4 py-2 text-sm font-medium bg-surface border border-outline text-on-surface hover:bg-surface-container transition-colors">Server Error</button>
+</div>
+</div>
+</div>
+</div></div>
+</div><div class="flex justify-end mt-4">
+<button class="flex items-center gap-2 px-4 h-9 border border-outline text-on-surface text-sm font-medium hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="refresh">refresh</span>
+        Reset to Default
+    </button>
+</div>
+</div>
+<!-- JSON Editor Section (Full Width) -->
+<div class="flex flex-col min-h-[500px]">
+<div class="flex items-center justify-between mb-3">
+<label class="text-xs font-semibold text-secondary uppercase tracking-widest">Mock Payload (JSON)</label>
+<div class="flex gap-4"><button class="text-xs text-error font-medium hover:underline flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="restart_alt">restart_alt</span> Reset
+                            </button>
+<button class="text-xs text-primary font-medium hover:underline flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="content_copy">content_copy</span> Copy
+                            </button>
+<button class="text-xs text-primary font-medium hover:underline flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="auto_fix_high">auto_fix_high</span> Format
+                            </button>
+</div>
+</div>
+<div class="flex-1 bg-[#161616] rounded-sm p-4 mono text-sm leading-relaxed overflow-hidden border border-transparent focus-within:border-primary transition-all relative group">
+<div class="absolute right-4 top-4 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="px-2 py-1 bg-surface-container-highest/20 text-[10px] text-stone-400">JSON MODE</span>
+</div>
+<div class="flex gap-4 h-full"><button class="text-xs text-error font-medium hover:underline flex items-center gap-1"></button>
+<div class="text-stone-600 text-right select-none pr-2 border-r border-stone-800">
+                                1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10<br>11<br>12<br>13<br>14<br>15
+                            </div>
+<div class="flex-1 text-stone-300 overflow-y-auto custom-scrollbar">
+<span class="text-primary-fixed-dim">{</span><br>
+                                &nbsp;&nbsp;<span class="text-tertiary-fixed-dim">"id"</span>: <span class="text-on-tertiary-container">"user_88291"</span>,<br>
+                                &nbsp;&nbsp;<span class="text-tertiary-fixed-dim">"name"</span>: <span class="text-on-tertiary-container">"Alexander Sterling"</span>,<br>
+                                &nbsp;&nbsp;<span class="text-tertiary-fixed-dim">"email"</span>: <span class="text-on-tertiary-container">"alex.s@platform.dev"</span>,<br>
+                                &nbsp;&nbsp;<span class="text-tertiary-fixed-dim">"role"</span>: <span class="text-on-tertiary-container">"Administrator"</span>,<br>
+                                &nbsp;&nbsp;<span class="text-tertiary-fixed-dim">"status"</span>: <span class="text-on-tertiary-container">"active"</span>,<br>
+                                &nbsp;&nbsp;<span class="text-tertiary-fixed-dim">"metadata"</span>: <span class="text-primary-fixed-dim">{</span><br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-tertiary-fixed-dim">"last_login"</span>: <span class="text-on-tertiary-container">"2023-10-24T12:00:00Z"</span>,<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-tertiary-fixed-dim">"tags"</span>: <span class="text-primary-fixed-dim">[</span><span class="text-on-tertiary-container">"premium"</span>, <span class="text-on-tertiary-container">"internal"</span><span class="text-primary-fixed-dim">]</span><br>
+                                &nbsp;&nbsp;<span class="text-primary-fixed-dim">}</span>,<br>
+                                &nbsp;&nbsp;<span class="text-tertiary-fixed-dim">"preferences"</span>: <span class="text-primary-fixed-dim">{</span><br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-tertiary-fixed-dim">"theme"</span>: <span class="text-on-tertiary-container">"dark"</span>,<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-tertiary-fixed-dim">"notifications"</span>: <span class="text-primary-fixed-dim">true</span><br>
+                                &nbsp;&nbsp;<span class="text-primary-fixed-dim">}</span><br>
+<span class="text-primary-fixed-dim">}</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Response Details Section -->
+<div class="mt-8 space-y-4 border-t border-outline-variant pt-6">
+<label class="text-xs font-semibold text-secondary uppercase tracking-widest block mb-4">Response Details</label>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-4">
+<div>
+<label class="text-[11px] font-medium text-secondary mb-1.5 block">Status Code</label>
+<div class="h-10 px-3 bg-surface-container flex items-center border-b border-outline text-sm">
+<span class="text-tertiary font-medium">200 OK</span>
+</div>
+</div>
+<div>
+<label class="text-[11px] font-medium text-secondary mb-1.5 block">Content-Type</label>
+<div class="h-10 px-3 bg-surface-container flex items-center border-b border-outline text-sm mono">
+                                    application/json
+                                </div>
+</div>
+</div>
+<div>
+<label class="text-[11px] font-medium text-secondary mb-1.5 block">Response Headers</label>
+<div class="bg-surface-container p-3 space-y-2 border-b border-outline min-h-[92px]">
+<div class="flex justify-between text-xs mono">
+<span class="text-secondary">Cache-Control:</span>
+<span class="text-on-surface">no-cache, no-store</span>
+</div>
+<div class="flex justify-between text-xs mono">
+<span class="text-secondary">X-Content-Type-Options:</span>
+<span class="text-on-surface">nosniff</span>
+</div>
+<div class="flex justify-between text-xs mono">
+<span class="text-secondary">Access-Control-Allow-Origin:</span>
+<span class="text-on-surface">*</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Stats Section -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="p-4 bg-surface-container-low border-b border-outline-variant">
+<div class="text-[11px] font-semibold text-secondary uppercase tracking-widest mb-1"><br></div>
+<div class="text-xl font-medium text-on-surface"><br></div>
+</div>
+<div class="p-4 bg-surface-container-low border-b border-outline-variant">
+<div class="text-[11px] font-semibold text-secondary uppercase tracking-widest mb-1"><br></div>
+<div class="text-xl font-medium text-tertiary"><br></div>
+</div>
+<div class="p-4 bg-surface-container-low border-b border-outline-variant">
+<div class="text-[11px] font-semibold text-secondary uppercase tracking-widest mb-1"><br></div>
+<div class="text-xl font-medium text-on-surface"><br></div>
+</div>
+<div class="p-4 bg-surface-container-low border-b border-outline-variant">
+<div class="text-[11px] font-semibold text-secondary uppercase tracking-widest mb-1"><br></div>
+<div class="text-xl font-medium text-on-surface"><br></div>
+</div>
+</div>
+<!-- Featured Documentation Card (Bento Style) -->
+</div>
+</section>
+</main>
+
+
+</body></html>

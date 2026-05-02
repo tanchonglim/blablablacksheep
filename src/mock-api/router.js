@@ -45,6 +45,8 @@ async function registerMockRoutes(fastify, { getSpec, getOverrides }) {
 
         fastify.log.info({ headers: req.headers }, `${method.toUpperCase()} ${req.url}`);
 
+        const latencyMs = req.receivedAt != null ? Date.now() - req.receivedAt : 0;
+
         if (result.storeInDb) {
           try {
             storeRequest({
@@ -56,6 +58,7 @@ async function registerMockRoutes(fastify, { getSpec, getOverrides }) {
               responseStatus: result.status,
               responseBody: result.body,
               scenarioType: result.scenarioType,
+              latencyMs,
             });
           } catch (err) {
             fastify.log.error({ err }, 'Failed to store request');

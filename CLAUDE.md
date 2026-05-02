@@ -20,7 +20,7 @@ src/
   mock-api/
     router.js               # Registers dynamic Fastify routes from OpenAPI spec
     behavior-engine.js      # Scenario selection, token substitution, regex randomization
-    request-store.js        # Persists successful requests to DB
+    request-store.js        # Persists logged mock requests to DB (when enabled per operation)
   scheduler/
     job-manager.js          # Loads scripts/, wires up node-cron
     runner.js               # Executes a script, injects query/writeFile helpers
@@ -44,9 +44,8 @@ data/requests.db            # SQLite database
 4. The **behavior engine** resolves the response:
    - **Default mode**: returns the first response code defined in the spec.
    - **Pinned mode**: always returns a specific status code (set via admin UI).
-5. Token substitution runs on the body: `{{uuid}}`, `{{timestamp}}`, `{{date}}`, `{{random_int}}`.
-6. Regex randomization runs after tokens: fields listed under `x-mock.responses[status].randomize` are replaced with a `RandExp`-generated string.
-7. If the response is 2xx and `store_on_success: true`, the request is written to the `requests` table.
+5. **Token substitution & regex randomization** on the response body (in this order): each string value expands **`{{regex('pattern')}}`** (preferred in JSON; **`{{regex("pattern")}}`** when quoting allows) first (RandExp), then named tokens (`{{uuid}}`, `{{timestamp}}`, `{{date}}`, `{{random_int}}`, plus `{{request.body.*}}`, `params`, `query`, `headers`); then fields listed under `x-mock.responses[status].randomize` (merged with `randomize_overrides`) are replaced again with `RandExp` — map keys win over inline/text for those fields.
+6. If `store_on_success: true` for the operation, the request is written to the `requests` table for **any** response status (2xx and errors), so the Logs UI shows failures too.
 
 ## OpenAPI spec format
 
@@ -71,7 +70,7 @@ Standard OpenAPI 3.0.3 plus an `x-mock` extension block per operation:
           application/json:
             # Singular example (one body per status code)
             example:
-              orderId: "{{uuid}}"          # token — substituted per request
+              orderId: "{{uuid}}"          # or "{{regex('[A-Z]{2}[0-9]{6}')}}" for inline regex (single-quoted pattern)
               status: "accepted"
               shipping:
                 trackingId: "000000000000"
@@ -124,7 +123,7 @@ Written and read by the admin UI. Do not edit manually while the server is runni
 }
 ```
 
-Override precedence (higher wins): `randomize_overrides` > `x-mock.responses[status].randomize`. Same for body and delay.
+Override precedence (higher wins): `randomize_overrides` > `x-mock.responses[status].randomize`. Same for body and delay. Field-map randomization runs after inline `{{regex(...)}}` and named tokens for keys listed in the map.
 
 `example_overrides` pins which named example is served for a status code. Ignored when `body_overrides` is set for the same status (manual edit wins).
 
@@ -133,8 +132,10 @@ Override precedence (higher wins): `randomize_overrides` > `x-mock.responses[sta
 **`requests`** — one row per stored API call
 ```
 id, endpoint, method, path, request_headers, request_body,
-response_status, response_body, scenario_type, created_at
+response_status, response_body, scenario_type, latency_ms, created_at
 ```
+
+`scenario_type` is `success` (2xx) or `error` (non-2xx). `latency_ms` is round-trip handling time in milliseconds (includes configured mock delay).
 
 **`job_runs`** — one row per batch job execution
 ```

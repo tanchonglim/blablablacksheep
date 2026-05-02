@@ -24,7 +24,7 @@ function writeOverrides(data) {
 
 async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
   // ── Endpoints page ──────────────────────────────────────────────────────
-  fastify.get('/admin/endpoints', async (req, reply) => {
+  fastify.get('/api/admin/endpoints', async (req, reply) => {
     const specFiles = getSpecFiles();
     const overrides = readOverrides();
 
@@ -63,11 +63,11 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
       groups.push({ file, tagGroups, totalEndpoints });
     }
 
-    return reply.view('endpoints.ejs', { groups, overrides });
+    return reply.send({ groups, overrides });
   });
 
   // Save scenario mode + pinned status
-  fastify.post('/admin/endpoints/mode', async (req, reply) => {
+  fastify.post('/api/admin/endpoints/mode', async (req, reply) => {
     const { key, mode, pinned_status } = req.body;
     const overrides = readOverrides();
     if (!overrides[key]) overrides[key] = {};
@@ -80,7 +80,7 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
   });
 
   // Save randomize overrides for a specific status
-  fastify.post('/admin/endpoints/randomize', async (req, reply) => {
+  fastify.post('/api/admin/endpoints/randomize', async (req, reply) => {
     const { key, status, patterns } = req.body;
     // patterns is a JSON string of { fieldName: regexStr }
     let parsed;
@@ -98,7 +98,7 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
   });
 
   // Reset randomize overrides for a specific status
-  fastify.post('/admin/endpoints/randomize/reset', async (req, reply) => {
+  fastify.post('/api/admin/endpoints/randomize/reset', async (req, reply) => {
     const { key, status } = req.body;
     const overrides = readOverrides();
     if (overrides[key]?.randomize_overrides) {
@@ -109,7 +109,7 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
   });
 
   // Save body override for a specific status
-  fastify.post('/admin/endpoints/body', async (req, reply) => {
+  fastify.post('/api/admin/endpoints/body', async (req, reply) => {
     const { key, status, body } = req.body;
     let parsed;
     try {
@@ -126,7 +126,7 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
   });
 
   // Reset body override for a specific status to OpenAPI default
-  fastify.post('/admin/endpoints/body/reset', async (req, reply) => {
+  fastify.post('/api/admin/endpoints/body/reset', async (req, reply) => {
     const { key, status } = req.body;
     const overrides = readOverrides();
     if (overrides[key]?.body_overrides) {
@@ -137,7 +137,7 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
   });
 
   // Pin which named example to serve for a specific status
-  fastify.post('/admin/endpoints/example', async (req, reply) => {
+  fastify.post('/api/admin/endpoints/example', async (req, reply) => {
     const { key, status, example_name } = req.body;
     const overrides = readOverrides();
     if (!overrides[key]) overrides[key] = {};
@@ -148,7 +148,7 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
   });
 
   // Reset example override (revert to first named example)
-  fastify.post('/admin/endpoints/example/reset', async (req, reply) => {
+  fastify.post('/api/admin/endpoints/example/reset', async (req, reply) => {
     const { key, status } = req.body;
     const overrides = readOverrides();
     if (overrides[key]?.example_overrides) {
@@ -159,7 +159,7 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
   });
 
   // Save store_on_success override
-  fastify.post('/admin/endpoints/store', async (req, reply) => {
+  fastify.post('/api/admin/endpoints/store', async (req, reply) => {
     const { key, store_on_success } = req.body;
     const overrides = readOverrides();
     if (!overrides[key]) overrides[key] = {};
@@ -169,7 +169,7 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
   });
 
   // Reset all overrides for an endpoint
-  fastify.post('/admin/endpoints/reset', async (req, reply) => {
+  fastify.post('/api/admin/endpoints/reset', async (req, reply) => {
     const { key } = req.body;
     const overrides = readOverrides();
     delete overrides[key];
@@ -177,19 +177,27 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
     return { ok: true };
   });
 
-  // Save delay override
-  fastify.post('/admin/endpoints/delay', async (req, reply) => {
-    const { key, delay_enabled, min_ms, max_ms } = req.body;
+  // Save delay override (fixed delay: delay_ms → min_ms === max_ms)
+  fastify.post('/api/admin/endpoints/delay', async (req, reply) => {
+    const { key, delay_enabled, delay_ms, min_ms, max_ms } = req.body;
     const overrides = readOverrides();
     if (!overrides[key]) overrides[key] = {};
     overrides[key].delay_enabled = delay_enabled !== 'false' && delay_enabled !== false;
-    if (min_ms !== undefined) overrides[key].delay = { min_ms: Number(min_ms), max_ms: Number(max_ms) };
+    if (delay_ms !== undefined && delay_ms !== null && delay_ms !== '') {
+      const ms = Math.max(0, Number(delay_ms));
+      overrides[key].delay = { min_ms: ms, max_ms: ms };
+    } else if (min_ms !== undefined) {
+      overrides[key].delay = {
+        min_ms: Number(min_ms),
+        max_ms: max_ms !== undefined ? Number(max_ms) : Number(min_ms),
+      };
+    }
     writeOverrides(overrides);
     return { ok: true };
   });
 
   // ── Requests page ────────────────────────────────────────────────────────
-  fastify.get('/admin/requests', async (req, reply) => {
+  fastify.get('/api/admin/requests', async (req, reply) => {
     const db = getDb();
     const { endpoint, status, page = 1 } = req.query;
     const limit = 50;
@@ -205,25 +213,25 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
     const total = db.prepare(`SELECT COUNT(*) as count FROM requests WHERE ${where}`).get(...params).count;
     const endpoints = db.prepare('SELECT DISTINCT endpoint FROM requests ORDER BY endpoint').all().map(r => r.endpoint);
 
-    return reply.view('requests.ejs', { rows, total, page: Number(page), limit, endpoint, status, endpoints });
+    return reply.send({ rows, total, page: Number(page), limit, endpoint, status, endpoints });
   });
 
   // Delete all requests
-  fastify.post('/admin/requests/clear', async (req, reply) => {
+  fastify.post('/api/admin/requests/clear', async (req, reply) => {
     getDb().prepare('DELETE FROM requests').run();
     return { ok: true };
   });
 
   // ── Jobs page ────────────────────────────────────────────────────────────
-  fastify.get('/admin/jobs', async (req, reply) => {
+  fastify.get('/api/admin/jobs', async (req, reply) => {
     const db = getDb();
     const scripts = loadScripts();
     const runs = db.prepare('SELECT * FROM job_runs ORDER BY started_at DESC LIMIT 100').all();
-    return reply.view('jobs.ejs', { scripts, runs });
+    return reply.send({ scripts, runs });
   });
 
   // Manual trigger (returns JSON; UI reloads after)
-  fastify.post('/admin/jobs/trigger', async (req, reply) => {
+  fastify.post('/api/admin/jobs/trigger', async (req, reply) => {
     const { file } = req.body;
     const scripts = loadScripts();
     const script = scripts.find(s => s.file === file);
@@ -232,8 +240,14 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
     return { ok: result.success, logs: result.logs, error: result.error || null, runId: result.runId };
   });
 
+  // Delete all jobs history
+  fastify.post('/api/admin/jobs/clear', async (req, reply) => {
+    getDb().prepare('DELETE FROM job_runs').run();
+    return { ok: true };
+  });
+
   // ── Output files page ────────────────────────────────────────────────────
-  fastify.get('/admin/files', async (req, reply) => {
+  fastify.get('/api/admin/files', async (req, reply) => {
     let files = [];
     if (fs.existsSync(OUTPUT_DIR)) {
       files = fs.readdirSync(OUTPUT_DIR)
@@ -244,11 +258,11 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
         })
         .sort((a, b) => b.mtime.localeCompare(a.mtime));
     }
-    return reply.view('files.ejs', { files });
+    return reply.send({ files });
   });
 
   // Download output file
-  fastify.get('/admin/files/download/:filename', async (req, reply) => {
+  fastify.get('/api/admin/files/download/:filename', async (req, reply) => {
     // Prevent path traversal
     const filename = path.basename(req.params.filename);
     const filePath = path.join(OUTPUT_DIR, filename);

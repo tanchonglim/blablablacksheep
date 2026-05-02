@@ -88,20 +88,25 @@ async function main() {
   // Static assets (compiled CSS + Alpine.js)
   await fastify.register(require('@fastify/static'), {
     root: path.join(__dirname, '../public'),
-    prefix: '/static/',
+    prefix: '/',
   });
 
   // Form body parsing (for admin UI form submissions)
   await fastify.register(require('@fastify/formbody'));
 
-  await fastify.register(require('@fastify/view'), {
-    engine: { ejs: require('ejs') },
-    root: VIEWS_DIR,
-    layout: 'layout.ejs',
-    propertyName: 'view',
-    options: { rmWhitespace: false },
+  // Serve the compiled React app for any unmatched route inside /admin
+  fastify.setNotFoundHandler((req, reply) => {
+    if (req.url.startsWith('/admin')) {
+      const indexHtmlPath = path.join(__dirname, '../public/admin/index.html');
+      if (fs.existsSync(indexHtmlPath)) {
+        reply.type('text/html').send(fs.createReadStream(indexHtmlPath));
+      } else {
+        reply.status(404).send('Admin UI build not found in public/admin/index.html');
+      }
+    } else {
+      reply.status(404).send({ error: 'Not Found' });
+    }
   });
-
 
   // Content-type parsing for mock API
   fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body, done) {

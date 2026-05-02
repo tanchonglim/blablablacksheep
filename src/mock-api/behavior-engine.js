@@ -16,7 +16,40 @@ function getNestedValue(obj, path) {
   return current;
 }
 
+function unescapeRegexPlaceholderInner(inner) {
+  return inner.replace(/\\(.)/g, (_, ch) => {
+    if (ch === 'n') return '\n';
+    if (ch === 'r') return '\r';
+    if (ch === 't') return '\t';
+    return ch;
+  });
+}
+
+// Inline regex randomization: {{regex('pattern')}} (preferred inside JSON) or {{regex("pattern")}}.
+// Single-quoted form avoids breaking JSON.parse when the placeholder sits in a JSON "string" value.
+// Runs before named tokens so brace-heavy patterns are not mistaken for {{uuid}} / {{request.*}}.
+function expandRegexPlaceholdersInString(str) {
+  if (typeof str !== 'string') return str;
+  const replaceQuoted = (s, quote) => {
+    const re = quote === '"'
+      ? /\{\{regex\(\s*"((?:[^"\\]|\\.)*)"\s*\)\}\}/g
+      : /\{\{regex\(\s*'((?:[^'\\]|\\.)*)'\s*\)\}\}/g;
+    return s.replace(re, (full, inner) => {
+      const pattern = unescapeRegexPlaceholderInner(inner);
+      try {
+        return new RandExp(pattern).gen();
+      } catch {
+        return full;
+      }
+    });
+  };
+  let out = replaceQuoted(str, "'");
+  out = replaceQuoted(out, '"');
+  return out;
+}
+
 // Token substitution in response bodies.
+// Order per string: (1) {{regex('…')}} / {{regex("…")}}, (2) built-in tokens, (3) {{request.*}} .
 // requestContext (optional): { body, params, query, headers }
 // Supported dynamic tokens (in addition to built-ins):
 //   {{request.body.field}}        — value from request body (dot notation for nested)
@@ -25,7 +58,7 @@ function getNestedValue(obj, path) {
 //   {{request.headers.headerName}} — request header (lowercase name)
 function substituteTokens(value, requestContext) {
   if (typeof value === 'string') {
-    return value
+    return expandRegexPlaceholdersInString(value)
       .replace(/\{\{uuid\}\}/g, () => uuidv4())
       .replace(/\{\{timestamp\}\}/g, () => new Date().toISOString())
       .replace(/\{\{random_int\}\}/g, () => String(Math.floor(Math.random() * 100000)))
@@ -179,7 +212,7 @@ function resolveResponse(specEndpoint, overrides, requestContext) {
     ? cfg.delay.min_ms + Math.floor(Math.random() * (cfg.delay.max_ms - cfg.delay.min_ms + 1))
     : 0;
 
-  // Token substitution then regex randomization
+  // Inline {{regex('…')}} / {{regex("…")}} + named tokens, then field-map randomization (map overwrites listed keys)
   let body = substituteTokens(scenario.body, requestContext);
   body = applyRandomize(body, scenario.randomize);
 
@@ -189,7 +222,7 @@ function resolveResponse(specEndpoint, overrides, requestContext) {
     status: scenario.status,
     body,
     delayMs,
-    storeInDb: isSuccess && cfg.storeOnSuccess,
+    storeInDb: cfg.storeOnSuccess,
     scenarioType: isSuccess ? 'success' : 'error',
   };
 }
