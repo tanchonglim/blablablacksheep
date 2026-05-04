@@ -108,9 +108,9 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
     return { ok: true };
   });
 
-  // Save body override for a specific status
+  // Save body override for a specific status (or specific named example within that status)
   fastify.post('/api/admin/endpoints/body', async (req, reply) => {
-    const { key, status, body } = req.body;
+    const { key, status, body, example_name } = req.body;
     let parsed;
     try {
       parsed = JSON.parse(body);
@@ -119,17 +119,27 @@ async function registerAdminRoutes(fastify, { getSpec, getSpecFiles }) {
     }
     const overrides = readOverrides();
     if (!overrides[key]) overrides[key] = {};
-    if (!overrides[key].body_overrides) overrides[key].body_overrides = {};
-    overrides[key].body_overrides[status] = parsed;
+    if (example_name) {
+      if (!overrides[key].example_body_overrides) overrides[key].example_body_overrides = {};
+      if (!overrides[key].example_body_overrides[status]) overrides[key].example_body_overrides[status] = {};
+      overrides[key].example_body_overrides[status][example_name] = parsed;
+    } else {
+      if (!overrides[key].body_overrides) overrides[key].body_overrides = {};
+      overrides[key].body_overrides[status] = parsed;
+    }
     writeOverrides(overrides);
     return { ok: true };
   });
 
-  // Reset body override for a specific status to OpenAPI default
+  // Reset body override for a specific status (or specific named example) to OpenAPI default
   fastify.post('/api/admin/endpoints/body/reset', async (req, reply) => {
-    const { key, status } = req.body;
+    const { key, status, example_name } = req.body;
     const overrides = readOverrides();
-    if (overrides[key]?.body_overrides) {
+    if (example_name) {
+      if (overrides[key]?.example_body_overrides?.[status]) {
+        delete overrides[key].example_body_overrides[status][example_name];
+      }
+    } else if (overrides[key]?.body_overrides) {
       delete overrides[key].body_overrides[status];
     }
     writeOverrides(overrides);

@@ -192,14 +192,19 @@ export default function Endpoints() {
         if (!activeEndpoint || !activeStatusStr) return;
         try {
             setIsSaving(true);
+            const hasExamples = activeScenario?.examples?.length > 0;
+            const payload = {
+                key: activeEndpoint.cfg.key,
+                status: activeStatusStr,
+                body: editedBodyStr,
+            };
+            if (hasExamples && activeScenario?.selectedExample) {
+                payload.example_name = activeScenario.selectedExample;
+            }
             await fetch('/api/admin/endpoints/body', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    key: activeEndpoint.cfg.key,
-                    status: activeStatusStr,
-                    body: editedBodyStr,
-                }),
+                body: JSON.stringify(payload),
             });
             loadData();
             showToast('Changes saved successfully!', 'success');
@@ -214,13 +219,18 @@ export default function Endpoints() {
         if (!activeEndpoint || !activeStatusStr) return;
         try {
             setIsResetting(true);
+            const hasExamples = activeScenario?.examples?.length > 0;
+            const payload = {
+                key: activeEndpoint.cfg.key,
+                status: activeStatusStr,
+            };
+            if (hasExamples && activeScenario?.selectedExample) {
+                payload.example_name = activeScenario.selectedExample;
+            }
             await fetch('/api/admin/endpoints/body/reset', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    key: activeEndpoint.cfg.key,
-                    status: activeStatusStr,
-                }),
+                body: JSON.stringify(payload),
             });
             loadData();
             showToast('Payload reverted to default spec successfully.', 'success');

@@ -154,7 +154,14 @@ function buildEffectiveConfig(specEndpoint, overrides) {
     }
 
     // Override body from admin UI (takes priority over everything)
-    const bodyOverride = override.body_overrides?.[status];
+    // For named examples, check per-example override first; fall back to status-level override
+    let bodyOverride;
+    if (examples.length > 0 && selectedExampleName) {
+      bodyOverride = override.example_body_overrides?.[status]?.[selectedExampleName];
+    }
+    if (bodyOverride === undefined) {
+      bodyOverride = override.body_overrides?.[status];
+    }
     const body = bodyOverride !== undefined ? bodyOverride : defaultBody;
 
     // Randomize config: spec level merged with override (override wins per-field)
